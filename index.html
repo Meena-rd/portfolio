@@ -2396,9 +2396,6 @@
             </div>
           </div>
         </div>
-        <button type="button" class="tool-btn btn-feedback" onclick="window.toggleAnonymousFeedback()" title="📝 अनाम सुझाव या समस्या दर्ज करें (100% Anonymous)" style="background:linear-gradient(135deg, #059669, #047857); color:#ffffff; border:none; font-weight:700;">
-          📝 Feedback
-        </button>
         <span class="save-status" id="saveStatus" onclick="manualSaveNow()" title="Data is saved">☁️ सुरक्षित</span>
         <div id="authHeaderContainer" style="display:inline-flex; align-items:center;"></div>
         <button type="button" class="tool-btn btn-backup" onclick="exportClassBackup()" title="पूरी कक्षा का बैकअप कंप्यूटर में सुरक्षित डाउनलोड करें">
@@ -20728,20 +20725,19 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     </div>
   </div>
 
-  <div id="aiAssistantFab" class="ai-fab-btn no-print" onclick="window.toggleOfflineAiChat()" title="🤖 सहायता AI • कुछ भी पूछें">
-    <span id="aiFabIcon">🤖</span>
+  <div id="aiAssistantFab" class="ai-fab-btn no-print" onclick="window.toggleOfflineAiChat()" title="💡 Help & Support Desk">
+    <span id="aiFabIcon">💡</span>
   </div>
 
   <!-- Chat Window -->
   <div id="aiAssistantWindow" class="ai-chat-window no-print">
     <!-- Header -->
-    <div class="ai-chat-header">
-      <div class="ai-chat-title">
-        <span>🤖</span>
-        <span>सहायक AI</span>
-        <span class="ai-badge-offline">100% ऑफलाइन</span>
+    <div class="ai-chat-header" style="background: linear-gradient(90deg, #0f172a, #1e293b); border-bottom: 1px solid rgba(56, 189, 248, 0.25); padding: 12px 16px;">
+      <div class="ai-chat-title" style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 16px;">💡</span>
+        <span style="font-weight: 800; font-size: 13.5px; color: #f8fafc; letter-spacing: 0.3px;">Help &amp; Support Desk</span>
       </div>
-      <button type="button" class="ai-chat-close" onclick="window.toggleOfflineAiChat()">✕</button>
+      <button type="button" class="ai-chat-close" onclick="window.toggleOfflineAiChat()" style="font-size: 16px; cursor: pointer; background: transparent; border: none; color: #94a3b8;">✕</button>
     </div>
 
     <!-- Quick Chips -->
@@ -20758,10 +20754,9 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     <!-- Messages -->
     <div id="aiChatMessages" class="ai-chat-messages">
       <div class="ai-msg-row bot">
-        <div style="font-size:16px;">🤖</div>
+        <div style="font-size:16px;">💡</div>
         <div class="ai-msg-bubble">
-          <b>Welcome Sir / Ma'am! 😊🙏</b><br>
-          How can I help you?
+          <b>Welcome Sir / Ma'am! 🙏 How may I help you?</b><br>Portfolio, Attendance, FLN, Calculations ya kisi bhi samasya me main aapki kis tarah madad kar sakta hoon?
         </div>
       </div>
     </div>
@@ -21177,325 +21172,380 @@ window.toggleOfflineAiChat = function() {
         }, 120);
       } else {
         win.classList.remove('open');
-        if (icon) icon.textContent = '🤖';
+        if (icon) icon.textContent = '💡';
       }
     };
 
     let aiContext = {
       lastTopic: null,
-      turn: 0
+      turn: 0,
+      salutation: "Sir / Ma'am",
+      confidence: 0,
+      turnsSinceCued: 0
     };
 
+    function updateSalutationFromText(q) {
+      const clean = q.toLowerCase();
+
+      // 1. Strong Self-Referential Grammatical Verbs (Feminine)
+      // "me bol rahi hu", "kar rahi hoon", "aayi thi", "karti hu", etc.
+      const femaleVerbPatterns = [
+        /\b(?:me|main|hum)\s+(?:ek\s+)?(?:teacher\s+)?(?:bol|kar|dekh|bata|samajh|chala|padha|soch|likh|puch|bhar)\s*rahi\s*(?:hu|hoon|hun)\b/i,
+        /\b(?:bol|kar|dekh|bata|samajh|chala|padha|soch|likh|puch|bhar)\s*rahi\s*(?:hu|hoon|hun|thi)\b/i,
+        /\b(?:rahi\s*hu|rahi\s*hoon|rahi\s*hun|rahi\s*thi)\b/i,
+        /\b(?:karti\s*hu|karti\s*hoon|chahti\s*hu|chahti\s*hoon|bolti\s*hu)\b/i,
+        /\b(?:aayi\s*hu|aayi\s*thi|gayi\s*hu|gayi\s*thi|baithi\s*hu)\b/i,
+        /\b(?:main\s+ek\s+(?:female|mahila|lady)\s+teacher\s+hoon)\b/i,
+        /\b(?:mujhe\s+ma'?am\s+(?:bolo|kaho|boliye))\b/i
+      ];
+
+      // 2. Strong Self-Referential Grammatical Verbs (Masculine)
+      // "me bol rha hu", "me bol raha hu", "kar raha hoon", "aaya tha", etc.
+      const maleVerbPatterns = [
+        /\b(?:me|main|hum)\s+(?:ek\s+)?(?:teacher\s+)?(?:bol|kar|dekh|bata|samajh|chala|padha|soch|likh|puch|bhar)\s*(?:raha|rha)\s*(?:hu|hoon|hun)\b/i,
+        /\b(?:bol|kar|dekh|bata|samajh|chala|padha|soch|likh|puch|bhar)\s*(?:raha|rha)\s*(?:hu|hoon|hun|tha)\b/i,
+        /\b(?:raha\s*hu|raha\s*hoon|rha\s*hu|rha\s*hoon|raha\s*hun|rha\s*hun|raha\s*tha|rha\s*tha)\b/i,
+        /\b(?:karta\s*hu|karta\s*hoon|krta\s*hu|chahta\s*hu|chahta\s*hoon|bolta\s*hu)\b/i,
+        /\b(?:aaya\s*hu|aaya\s*tha|gaya\s*hu|gaya\s*tha|baitha\s*hu)\b/i,
+        /\b(?:main\s+ek\s+(?:male|purush)\s+teacher\s+hoon)\b/i,
+        /\b(?:mujhe\s+sir\s+(?:bolo|kaho|boliye))\b/i
+      ];
+
+      const isFemaleVerb = femaleVerbPatterns.some(p => p.test(clean));
+      const isMaleVerb = maleVerbPatterns.some(p => p.test(clean));
+
+      // 3. Vocatives (Direct address titles)
+      const hasSirVocative = /\b(sir|sirji|sir\s*ji|shriman)\b/i.test(clean);
+      const hasMamVocative = /\b(ma'?am|madam|mam|maam|madam\s*ji|mam\s*ji)\b/i.test(clean);
+
+      // Safety Check: If both female and male clues in the same sentence -> Ambiguous -> Sir / Ma'am
+      if (isFemaleVerb && isMaleVerb) {
+        aiContext.salutation = "Sir / Ma'am";
+        aiContext.confidence = 0;
+        aiContext.turnsSinceCued = 0;
+        return;
+      }
+
+      // Priority 1: Self-referential grammatical verbs (Highest accuracy!)
+      // If a female teacher says "Sir, me bol rahi hu...", she is female (Ma'am)
+      if (isFemaleVerb) {
+        aiContext.salutation = "Ma'am";
+        aiContext.confidence = 2;
+        aiContext.turnsSinceCued = 0;
+        return;
+      }
+
+      // If a male teacher says "Madam, me bol raha hu...", he is male (Sir)
+      if (isMaleVerb) {
+        aiContext.salutation = "Sir";
+        aiContext.confidence = 2;
+        aiContext.turnsSinceCued = 0;
+        return;
+      }
+
+      // Priority 2: Direct vocatives only when no self-referential verb is present
+      if (hasMamVocative && !hasSirVocative) {
+        aiContext.salutation = "Ma'am";
+        aiContext.confidence = 1;
+        aiContext.turnsSinceCued = 0;
+        return;
+      }
+
+      if (hasSirVocative && !hasMamVocative) {
+        aiContext.salutation = "Sir";
+        aiContext.confidence = 1;
+        aiContext.turnsSinceCued = 0;
+        return;
+      }
+
+      // Priority 3: Periodic Re-check for School Environment (20-25 teachers on same device)
+      // If no gender cue in current message, increment turnsSinceCued
+      aiContext.turnsSinceCued = (aiContext.turnsSinceCued || 0) + 1;
+      // If no gender cue for 3 consecutive turns, safely revert to "Sir / Ma'am"
+      // to avoid misgendering another teacher who might pick up the device!
+      if (aiContext.turnsSinceCued >= 3) {
+        aiContext.salutation = "Sir / Ma'am";
+        aiContext.confidence = 0;
+      }
+    }
+
+    function getSalutation() {
+      return aiContext.salutation || "Sir / Ma'am";
+    }
+
     const AI_KB = {
-      feedback_issue: {
-        keywords: ['feedback', 'sujhav', 'shikayat', 'problem', 'bug', 'error', 'kami', 'issue', 'galti', 'report', 'suggest', 'सुझाव', 'शिकायत', 'समस्या', 'कमी', 'फीडबैक', 'एरर', 'बग', 'कमी बताओ', 'मदद करो'],
-        hi: "📝 <b>सुझाव एवं समस्या रिपोर्ट:</b><br>आपकी राय हमारे लिए अत्यंत मूल्यवान है। कृपया नीचे दिए गए 1-क्लिक बटन पर दबाकर अपना सुझाव या आ रही समस्या सीधे दर्ज करें (यह 100% अनाम है):<br><button type='button' class='action-btn' style='background:#059669; color:#ffffff; font-weight:800; font-size:12px; padding:6px 14px; border-radius:6px; margin-top:8px; border:none; cursor:pointer; box-shadow:0 2px 6px rgba(5,150,105,0.3);' onclick='window.openFeedbackFromAi()'>📝 Feedback / समस्या फॉर्म खोलें</button>",
-        hinglish: "📝 <b>Feedback & Issue Report:</b><br>Aapka feedback bohot important hai. Kripya neeche button par click karke apna sujhav ya problem direct submit karein (100% anonymous):<br><button type='button' class='action-btn' style='background:#059669; color:#ffffff; font-weight:800; font-size:12px; padding:6px 14px; border-radius:6px; margin-top:8px; border:none; cursor:pointer; box-shadow:0 2px 6px rgba(5,150,105,0.3);' onclick='window.openFeedbackFromAi()'>📝 Open Feedback Form</button>",
-        en: "📝 <b>Suggestions & Bug Reporting:</b><br>Your feedback helps us continuously improve the application. Please click below to submit your feedback or report an issue directly (100% anonymous):<br><button type='button' class='action-btn' style='background:#059669; color:#ffffff; font-weight:800; font-size:12px; padding:6px 14px; border-radius:6px; margin-top:8px; border:none; cursor:pointer; box-shadow:0 2px 6px rgba(5,150,105,0.3);' onclick='window.openFeedbackFromAi()'>📝 Open Feedback Form</button>"
-      },
-      greeting: {
-        keywords: ['hello', 'hi', 'hey', 'namaste', 'namaskar', 'pranam', 'kaun', 'kon', 'who', 'help', 'madad', 'sahayak', 'नमस्ते', 'प्रणाम', 'नमस्कार', 'सहायता', 'मदद', 'आप कौन'],
-        hi: "नमस्ते सर / मैडम! 🙏 मैं आपकी सेवा में उपस्थित हूँ। बताएं आज किस फॉर्म, हाजिरी या रिकॉर्ड में आपकी सहायता करूँ?",
-        hi_step2: "🙏 मैं 12 प्रपत्रों, FLN, क्लास बोर्ड और बैकअप में पूरी सहायता कर सकता हूँ। बताएं क्या प्रश्न है?",
-        hinglish: "Hello Sir / Ma'am! 🙏 Main aapki service me ready hoon. Batayein aaj kis form, attendance ya record me help karoon?",
-        hinglish_step2: "Sure Sir / Ma'am, main sabhi 12 proformas, FLN scores, Class Board aur backup me guide kar sakta hoon. Kahan issue aa raha hai?",
-        en: "Welcome Sir / Ma'am! 🙏 I am right here at your service. Which form, register, or student record may I assist you with today?",
-        en_step2: "🙏 I can guide you through all 12 portfolio sheets, attendance calculations, FLN scores, and backups. How may I help?"
-      },
-
-      lock_students: {
-        keywords: ['lock', 'unlock', 'freeze', 'सुरक्षित लॉक', 'लॉक', 'अनलॉक', 'सभी लॉक', 'सभी अनलॉक', 'roster lock', 'lock kaise', 'unlock kaise'],
-        hi: "🔒 <b>डेटा सुरक्षा लॉक:</b><br>कृपया मास्टर रजिस्टर में <b>[🔒 सभी लॉक करें]</b> दबाएं — बच्चों के नाम व रोल नंबर सुरक्षित हो जाएंगे ताकि गलती से कोई बदलाव न हो। अनलॉक भी वहीं से होगा।",
-        hi_step2: "💡 लॉक होने पर भी हाजिरी और FLN अंक भरे जा सकते हैं, केवल मूल विवरण सुरक्षित रहते हैं।",
-        hinglish: "🔒 <b>Data Lock:</b><br>Master Roster me <b>[🔒 सभी लॉक करें]</b> click karein — student records freeze ho jayenge taaki galti se edit na hon. Unlock bhi wahin se hoga.",
-        hinglish_step2: "💡 Lock mode me bhi attendance aur FLN fill ho sakte hain, sirf student details protected rehti hain.",
-        en: "🔒 <b>Data Protection Lock:</b><br>Please tap <b>[🔒 Lock All]</b> in the Master Roster to prevent accidental alterations. You can unlock anytime using the same button.",
-        en_step2: "💡 Attendance and FLN scores can still be entered while locked; only student identities are protected."
-      },
-
-      add_student: {
-        keywords: ['student', 'naya baccha', 'naya bacha', 'add', 'baccha', 'bache', 'chhatra', 'admn', 'admission', 'roll', 'jode', 'jodna', 'daakhila', 'दाखिला', 'प्रवेश', 'srn', 'विद्यार्थी', 'roster me', 'naam jod', 'naam kaise', 'नाम कैसे', 'बच्चा कैसे', 'नया छात्र', 'add student', 'पंक्ति', '1 row', 'नई पंक्ति'],
-        hi: "📋 <b>नया छात्र जोड़ना:</b><br>1. <b>अंत में जोड़ना:</b> तालिका के नीचे <b>[➕ नया छात्र जोड़ें (+1 Row)]</b> दबाएं, ठीक 1 नई पंक्ति जुड़ेगी।<br>2. <b>बीच में जोड़ना:</b> शीर्ष पर <b>[➕ बीच में छात्र जोड़ें]</b> दबाकर रोल नंबर दर्ज करें, या किसी छात्र के आगे हरा <b>[➕]</b> दबाएं। सभी रिकॉर्ड सुरक्षित खिसक जाएंगे।",
-        hi_step2: "💡 यदि वर्णमाला क्रम में कोई बच्चा बीच में छूट गया हो, तो आपको पुराने बच्चों को मिटाने की बिल्कुल ज़रूरत नहीं है — 'बीच में जोड़ें' से सब सुरक्षित शिफ्ट हो जाता है।",
-        hinglish: "📋 <b>Add Student:</b><br>1. <b>End me add karein:</b> Table ke neeche <b>[➕ नया छात्र जोड़ें (+1 Row)]</b> click karein.<br>2. <b>Bich me add karein:</b> Top par <b>[➕ बीच में छात्र जोड़ें]</b> click karke roll number daalein, ya row me green <b>[➕]</b> dabayein.",
-        hinglish_step2: "💡 Bich me naya baccha aane par pichle sabhi bacchon ki attendance, FLN aur marks bina kisi galti ke 1 row neeche auto-shift ho jate hain.",
-        en: "📋 <b>Add Student:</b><br>1. <b>At End:</b> Click <b>[➕ Add New Student (+1 Row)]</b> at table bottom.<br>2. <b>In Between:</b> Click <b>[➕ Insert Row In Between]</b> at the top or the green <b>[➕]</b> on any row to insert a missed student with full key-shifting.",
-        en_step2: "💡 Our Intelligent Key-Shift Engine automatically shifts attendance, FLN, and exam marks safely without data collisions."
-      },
-
-      sheets_12: {
-        keywords: ['12 sheet', '12 sheets', 'forms', 'dossier', 'portfolio', 'cover', 'p1', 'p2', 'p3', 'f1', '12 फॉर्म', 'बारह', 'प्रपत्र', 'शीट', 'दस्तावेज', 'विद्यार्थी प्रोफाइल', 'पोर्टफोलियो', 'active student', 'ड्रॉपडाउन', '12', 'sheet'],
-        hi: "📑 <b>12 प्रपत्र (Portfolio):</b><br>मास्टर रजिस्टर और FLN का डेटा सभी <b>12 प्रपत्रों में अपने आप आ जाता है</b>। आप किसी भी बॉक्स पर क्लिक करके अपने मनचाहे रिमार्क भी लिख सकते हैं।",
-        hi_step2: "💡 ऊपर छात्र ड्रॉपडाउन से जिस बच्चे को चुनेंगे, 12 प्रपत्रों में उसी का पूरा रिकॉर्ड प्रदर्शित होगा।",
-        hinglish: "📑 <b>12 Portfolio Sheets:</b><br>Master Roster aur FLN ka data sabhi <b>12 sheets me auto-fill</b> ho jata hai. Aap kisi bhi box me click karke custom remarks bhi type kar sakte hain.",
-        hinglish_step2: "💡 Top bar me student dropdown se jise select karenge, 12 sheets me usi ka record display hoga.",
-        en: "📑 <b>12 Portfolio Sheets:</b><br>Master Roster and FLN entries <b>auto-populate all 12 sheets</b>. You also retain full authority to manually edit any remarks.",
-        en_step2: "💡 Select any child from the student dropdown at the top to instantly view their entire 12-page portfolio."
-      },
-
-      privacy: {
-        keywords: ['privacy', 'surakshit', 'safe', 'secure', 'server', 'leak', 'chori', 'private', 'गोपनीयता', 'सुरक्षित', 'सर्वर', 'सुरक्षा', 'third party', 'chura', 'गायब', 'safe hai', 'kahan save', 'kahan rehta', 'कहाँ रहता', 'कहाँ सेव', 'hacker', 'hacking', 'agent', 'ai agent', 'govt', 'government', 'sarkari', 'legal', 'kanuni', 'department', 'हैकर', 'कानूनी', 'सरकारी', 'लीक', 'चोरी', 'डेटा सुरक्षा', 'kisi ke pas', 'chori ho sakta', 'kahi jata', 'data safe'],
-        hi: "बिल्कुल निश्चिंत रहें सर / मैडम! 🛡️ <b>डेटा 100% सुरक्षित है:</b><br>आपका सारा डेटा केवल आपके अपने फोन/कंप्यूटर में सुरक्षित रहता है, किसी बाहरी सर्वर पर नहीं जाता। आप बिना इंटरनेट (फ़्लाइट मोड) में भी बेफिक्र चला सकते हैं।",
-        hi_step2: "⚖️ यह ऐप बाल सुरक्षा व DPDP नियमों का 100% पालन करता है। डेटा आपके डिवाइस पर ही सुरक्षित रहता है।",
-        hinglish: "Bilkul nishchint rahein, Sir / Ma'am! 🛡️ <b>100% Safe & Private:</b><br>Aapka complete data aapke apne device me securely save rehta hai, kisi external server par nahi jata. Offline me bhi smoothly kaam karega.",
-        hinglish_step2: "⚖️ Yeh app DPDP aur student data privacy rules ka 100% compliance karta hai. Data aapke device par safe rehta hai.",
-        en: "Rest assured, Sir / Ma'am! 🛡️ <b>100% Safe & Private:</b><br>100% of your data resides securely on your own device only, with zero external server uploads. It is completely safe offline in Airplane mode.",
-        en_step2: "⚖️ Complies 100% with Child Data Privacy and DPDP regulations. No data ever leaves your device without your direct action."
-      },
-
-      slc_transfer: {
-        keywords: ['slc', 'transfer', 'tc', 'टी सी', 'ट्रांसफर', 'स्कूल छोड़', 'नाम कटा', 'काटना', 'हटाना', 'tc kat', 'tc kat gaya'],
-        hi: "🏫 <b>SLC या ट्रांसफर छात्र:</b><br>मास्टर रजिस्टर में छात्र के आगे स्थिति (Status) को <b>'SLC'</b> कर दें। उसका पुराना रिकॉर्ड सुरक्षित रहेगा और बाकी बच्चों के रोल नंबर अपने आप व्यवस्थित हो जाएंगे।",
-        hi_step2: "💡 SLC छात्र का रिकॉर्ड सुरक्षित रहता है, पर वह दैनिक हाजिरी और कक्षा औसत प्रतिशत से अपने आप बाहर हो जाता है।",
-        hinglish: "🏫 <b>SLC / Transfer Student:</b><br>Master Register me student ke aage status ko <b>'SLC'</b> select karein. Record safe rahega aur baaki active students ke roll numbers auto-adjust ho jayenge.",
-        hinglish_step2: "💡 SLC student ka data audit ke liye rehta hai par daily attendance aur class percentage se auto-exclude ho jata hai.",
-        en: "🏫 <b>SLC / Transferred Student:</b><br>Please set the student's status to <b>'SLC'</b> in the Master Roster. Historical records remain preserved while active roll numbers auto-adjust.",
-        en_step2: "💡 Archived SLC students are preserved for inspections while automatically excluded from active daily attendance counts."
-      },
-
-            attendance_symbols: {
+      attendance_symbols: {
         keywords: [
-          'p a', 'p aur a', 'p and a', 'p or a', 'p a h l', 'p a l h',
-          'p ka matlab', 'a ka matlab', 'h ka matlab', 'l ka matlab',
-          'p ka kya matlab', 'a ka kya matlab', 'h ka kya matlab', 'l ka kya matlab',
-          'p matlab', 'a matlab', 'h matlab', 'l matlab', 'matlab', 'matalab', 'meaning',
-          'full form', 'symbol', 'symbols', 'code', 'codes', 'present absent',
-          'चिन्ह', 'मतलब', 'अर्थ', 'संकेत', 'फुल फॉर्म',
-          'p क्या है', 'a क्या है', 'h क्या है', 'l क्या है',
-          'p का अर्थ', 'a का अर्थ', 'h का अर्थ', 'l का अर्थ',
-          'p a का क्या मतलब', 'p a h l क्या है'
+          'p a h l', 'p a', 'p aur a', 'p or a', 'p a ka matlab', 'present absent', 'h ka matlab',
+          'l ka matlab', 'holiday', 'leave', 'symbols', 'chinh', 'arth', 'full form', 'meaning',
+          'मतलब', 'अर्थ', 'प्रतीक', 'हाजिरी कोड'
         ],
-        hi: "📋 <b>हाजिरी कोड (P, A, H, L) का अर्थ:</b><br>" +
-            "• <b>P (Present):</b> विद्यार्थी कक्षा में <b>उपस्थित</b> है।<br>" +
-            "• <b>A (Absent):</b> विद्यार्थी <b>अनुपस्थित</b> (गैरहाजिर) है।<br>" +
-            "• <b>H (Holiday):</b> रविवार या स्कूल <b>अवकाश/छुट्टी</b> (यह कुल कार्य दिवसों में नहीं गिना जाता)।<br>" +
-            "• <b>L (Leave):</b> आवेदन / प्रार्थना पत्र देकर ली गई <b>स्वीकृत छुट्टी</b>।",
-        hi_step2: "💡 <b>गणना नियम:</b> P से कुल उपस्थितियाँ बढ़ती हैं, A से प्रतिशत घटता है, और H/L को कुल कार्य दिवसों से स्वतः बाहर रखा जाता है।",
-        hinglish: "📋 <b>Attendance Symbols (P, A, H, L) ka Matlab:</b><br>" +
-            "• <b>P = Present:</b> Student class me <b>upasthit</b> hai.<br>" +
-            "• <b>A = Absent:</b> Student <b>gair-hazir</b> (anupasthit) hai.<br>" +
-            "• <b>H = Holiday:</b> Sunday ya official school <b>chhutti</b> (working days me count nahi hota).<br>" +
-            "• <b>L = Leave:</b> Application dekar li gayi <b>approved leave</b> (chhutti).",
-        hinglish_step2: "💡 <b>Calculation Rule:</b> P total present badhata hai, A se attendance kam hoti hai, aur H/L working days se bahar rehte hain.",
-        en: "📋 <b>Attendance Symbols (P, A, H, L) Explained:</b><br>" +
-            "• <b>P (Present):</b> Student is <b>present</b> in class.<br>" +
-            "• <b>A (Absent):</b> Student is <b>absent</b> without approved leave.<br>" +
-            "• <b>H (Holiday):</b> Sunday or official school <b>holiday</b> (excluded from working days).<br>" +
-            "• <b>L (Leave):</b> Student is on <b>approved leave</b> via formal application.",
-        en_step2: "💡 <b>Calculation Rule:</b> 'P' increments attendance totals, 'A' counts against attendance, while 'H' & 'L' are excluded from total working sessions."
+        hinglish: "📋 <b>P</b> = Present, <b>A</b> = Absent, <b>H</b> = Official Holiday / Sunday, <b>L</b> = Approved Leave.",
+        en: "📋 <b>P</b> = Present, <b>A</b> = Absent, <b>H</b> = Official Holiday / Sunday, <b>L</b> = Approved Leave."
       },
 
       attendance: {
-        keywords: ['attendance', 'hajiri', 'present', 'absent', 'register', 'हाजिरी', 'उपस्थिति', 'रजिस्टर', 'पोर्टल पेस्ट', 'p a h l'],
-        hi: "📅 <b>हाजिरी भरना:</b><br>कृपया हाजिरी टैब में जाकर तारीख के बॉक्स में <b>P, A, H या L</b> टाइप करें। महीने का कुल जोड़ और आधिकारिक रजिस्टर समरी अपने आप तैयार हो जाएगी।",
-        hi_step2: "📋 Edudel या पोर्टल से हाजिरी लाने के लिए ऊपर <b>[📋 पोर्टल पेस्ट]</b> का उपयोग करें — नामों को पहचानकर 1 सेकंड में हाजिरी लग जाएगी।",
-        hinglish: "📅 <b>Attendance Entry:</b><br>Attendance tab me jakar date column me simply <b>P, A, H ya L</b> type karein. Monthly summary aur percentage register automatically calculate kar lega.",
-        hinglish_step2: "📋 Edudel ya portal se attendance match karne ke liye upar <b>[📋 पोर्टल पेस्ट]</b> use karein — 1 second me entry ho jayegi.",
-        en: "📅 <b>Attendance Entry:</b><br>Please open the Attendance tab and enter <b>P, A, H, or L</b>. Monthly totals and official summaries calculate automatically.",
-        en_step2: "📋 For portal or WhatsApp lists, tap <b>[📋 Portal Paste]</b> — it auto-matches names and fills attendance in 1 second."
+        keywords: [
+          'attendance kaise bhare', 'attendance fill', 'hazri kaise lagaye', 'hazri bharna', 'hazri', 'attendance',
+          'sunday ki hazri', 'sunday attendance', 'chhutti mark', 'holiday mark', 'date column',
+          'attendance register', 'register kaise bhare', 'daily attendance', 'हाजिरी भरना', 'रजिस्टर कैसे भरें', 'हाजिरी'
+        ],
+        hinglish: "📅 <b>Attendance Entry:</b> Attendance tab me date cell par click karke <b>P, A, H ya L</b> type karein. Sunday auto 'H' hota hai aur total monthly attendance auto calculate hoti hai.",
+        en: "📅 <b>Attendance Entry:</b> Click any date cell in Attendance tab and type <b>P, A, H, or L</b>. Monthly totals and working days calculate automatically."
       },
 
       formula_logic: {
-        keywords: ['formula', 'calculate', 'kaisa nikala', 'logic', 'average', 'ausat', 'ratio', 'percentage', 'percent', 'hisaab', 'ganit', 'भाग', 'औसत', 'कैलकुलेशन', 'प्रतिशत', 'परसेंटेज', 'अनुपात', 'फॉर्मूला', 'गणित', 'denominator', 'per cent'],
-        hi: "📊 <b>हाजिरी फॉर्मूला:</b><br>कुल क्लास प्रतिशत = <code>(कुल उपस्थितियाँ ÷ (सक्रिय छात्र × कार्य दिवस)) × 100</code>। रविवार और अवकाश (H/L) कार्य दिवसों से अपने आप बाहर रहते हैं।",
-        hi_step2: "💡 महीने के सबसे नियमित टॉप 5 बच्चे क्लास बोर्ड (CB-5) के स्टार बोर्ड में स्वतः शामिल हो जाते हैं।",
-        hinglish: "📊 <b>Attendance Formula:</b><br>Class % = <code>(Total Attendances ÷ (Active Students × Working Days)) × 100</code>. Sundays aur holidays working days se auto-exclude rehte hain.",
-        hinglish_step2: "💡 Top 5 regular students Class Board (CB-5) me automatically feature ho jate hain.",
-        en: "📊 <b>Attendance Formula:</b><br>Class % = <code>(Total Presents ÷ (Active Enrolled × Working Days)) × 100</code>. Sundays and holidays are automatically excluded.",
-        en_step2: "💡 Top 5 regular attendees are automatically featured in Class Board (CB-5)."
+        keywords: [
+          'percentage formula', 'pratishat kaise nikalta', 'attendance percentage', 'hazri percentage', 'pratishat', 'percentage',
+          'calculation formula', 'formula kya hai', 'working days rule', 'formula logic', 'प्रतिशत फॉर्मूला', 'कैलकुलेशन', 'प्रतिशत'
+        ],
+        hinglish: "🧮 <b>Attendance % Formula:</b> <code>(Total Present / Total Working Days) × 100</code>. Sunday (H) aur Approved Leave (L) working days me shamil nahi hote.",
+        en: "🧮 <b>Attendance %:</b> <code>(Total Present / Working Days) × 100</code>. Holidays (H) and Leaves (L) are excluded from total working days."
       },
 
-      error_recovery: {
-        keywords: ['galti', 'galat', 'delete', 'mistake', 'wrong', 'gadbadi', 'undo', 'restore', 'खो गया', 'चला गया', 'गलत', 'गलती', 'वापस', 'मिट', 'गड़बड़', 'सुधारें', 'सुधार', 'अंडू', 'ctrl z'],
-        hi: "🛡️ <b>गलती सुधारना (Undo):</b><br>कीबोर्ड पर <b>Ctrl + Z</b> दबाएं, पिछला सही डेटा तुरंत वापस आ जाएगा। या सीधे बॉक्स पर क्लिक करके सही जानकारी लिख दें।",
-        hi_step2: "💡 यदि कोई रिकॉर्ड गलती से हट गया हो, तो <b>[⚙️ सेटिंग्स] ➔ 'Backup & Restore'</b> से पिछला बैकअप सुरक्षित रूप से रीस्टोर कर सकते हैं।",
-        hinglish: "Bilkul fikar na karein, Sir / Ma'am! 🛡️ <b>Undo & Recovery:</b><br>Keyboard par <b>Ctrl + Z</b> dabayein, pichla data instantly wapas aa jayega. Ya cell par click karke direct correct value type kar lein.",
-        hinglish_step2: "💡 Agar koi data galti se clear ho gaya ho, toh <b>[⚙️ सेटिंग्स] ➔ 'Backup & Restore'</b> se safe point restore karein.",
-        en: "Do not worry at all, Sir / Ma'am! 🛡️ <b>Instant Undo:</b><br>Press <b>Ctrl + Z</b> to immediately revert your last edit, or simply click the box and retype the correct value.",
-        en_step2: "💡 If records were accidentally altered, restore your safe checkpoint anytime via <b>[⚙️ Settings] ➔ 'Backup & Restore'</b>."
-      },
-
-      manual_override: {
-        keywords: ['manual', 'override', 'khud', 'apne aap', 'apne hath', 'hath se', 'badal', 'badalna', 'badal sakta', 'manchaha', 'manually', 'मैनुअल', 'खुद से', 'बदलना', 'हाथ से', 'अपने आप', 'खुद बदल'],
-        hi: "✍️ <b>शिक्षक का पूर्ण अधिकार:</b><br>ऑटो-सिंक के बाद भी आप किसी भी बॉक्स पर क्लिक करके अपना मनचाहा नंबर या टिप्पणी हाथ से लिख सकते हैं — ऐप उसे सुरक्षित रखेगा।",
-        hi_step2: "💡 आपके हाथ से लिखे गए नंबरों को प्राथमिकता मिलती है — ऐप उन्हें कभी भी अपने आप नहीं बदलता।",
-        hinglish: "✍️ <b>Teacher Authority:</b><br>Auto-sync ke baad bhi aap kisi bhi cell par click karke custom marks ya remarks type kar sakte hain — app unhe strictly save rakhega.",
-        hinglish_step2: "💡 Manual entries ko priority milti hai — system aapke custom inputs ko overwrite nahi karega.",
-        en: "✍️ <b>Full Teacher Authority:</b><br>You can click into ANY cell and manually enter your custom marks or remarks — your edits are strictly preserved.",
-        en_step2: "💡 Manual teacher edits always take precedence over automated sync."
-      },
-
-      exam_grading: {
-        keywords: ['grade', 'grading', 'purnank', 'marks', 'pa 1', 'pa 2', 'pa 3', 'mid term', 'annual', 'final exam', 'पूर्णांक', 'ग्रेड', 'ग्रेडिंग', 'कितने नंबर', '20 नंबर', '60 नंबर', 'result exam'],
-        hi: "🏆 <b>MCD आधिकारिक परीक्षा व ग्रेडिंग मानक:</b><br>• <b>PA 1, 2, 3</b> = 20 अंक पूर्णांक<br>• <b>Mid-Term व Final</b> = 60 अंक पूर्णांक<br>• <b>5-स्तरीय ग्रेड:</b><br>&nbsp;&nbsp;<b>A</b>: 75%+ (उत्कृष्ट)<br>&nbsp;&nbsp;<b>B</b>: 60%–74% (बहुत अच्छा)<br>&nbsp;&nbsp;<b>C</b>: 50%–59% (अच्छा)<br>&nbsp;&nbsp;<b>D</b>: 33%–49% (संतोषजनक)<br>&nbsp;&nbsp;<b>E</b>: <33% (उपचारात्मक आवश्यक)",
-        hi_step2: "💡 MCD प्राथमिक स्तर पर केवल 5 ग्रेड (A, B, C, D, E) होते हैं, कोई A+ ग्रेड नहीं होता।",
-        hinglish: "🏆 <b>MCD Official Exam & Grading Rules:</b><br>• <b>PA 1, 2, 3</b> = 20 marks max<br>• <b>Mid-Term & Final</b> = 60 marks max<br>• <b>5-Tier Grades:</b><br>&nbsp;&nbsp;<b>A</b>: 75%+ (Excellent)<br>&nbsp;&nbsp;<b>B</b>: 60%–74% (Very Good)<br>&nbsp;&nbsp;<b>C</b>: 50%–59% (Good)<br>&nbsp;&nbsp;<b>D</b>: 33%–49% (Satisfactory)<br>&nbsp;&nbsp;<b>E</b>: <33% (Needs Support)",
-        hinglish_step2: "💡 MCD primary schools me strictly 5 grades (A, B, C, D, E) hi hote hain, koi A+ grade nahi hota.",
-        en: "🏆 <b>Official MCD Exam & Grading Standard:</b><br>• <b>PA 1, 2, 3</b> = 20 Maximum Marks<br>• <b>Mid-Term & Final</b> = 60 Maximum Marks<br>• <b>5-Tier Scale:</b><br>&nbsp;&nbsp;<b>A</b>: 75%+ (Excellent)<br>&nbsp;&nbsp;<b>B</b>: 60%–74% (Very Good)<br>&nbsp;&nbsp;<b>C</b>: 50%–59% (Good)<br>&nbsp;&nbsp;<b>D</b>: 33%–49% (Satisfactory)<br>&nbsp;&nbsp;<b>E</b>: <33% (Remedial Support)",
-        en_step2: "💡 MCD Primary follows strictly 5 grades (A, B, C, D, E) — there is no A+ grade."
-      },
-
-      fln: {
-        keywords: ['fln', 'level', 'levels', 'score', 'scores', 'pakshik', 'असेसमेंट', 'स्तर', 'पाक्षिक', 'एफएलएन', 'मूल्यांकन', 'रेमेडियल', 'l1', 'l2', 'l3', 'l4', 'l5'],
-        hi: "📊 <b>FLN असेसमेंट:</b><br>कृपया FLN टैब में जाकर छात्र के आगे स्तर (<b>L1 से L5</b>) दर्ज करें। यह प्रपत्र F1 और क्लास बोर्ड (CB-1 व CB-2) में अपने आप दर्ज हो जाएगा।",
-        hi_step2: "💡 कमजोर बच्चों की सूची देखने के लिए ऊपर <b>[📊 FLN एनालिटिक्स व रेमेडियल]</b> बटन दबाएं।",
-        hinglish: "📊 <b>FLN Assessment:</b><br>FLN tab open karke student ka level (<b>L1 to L5</b>) select karein. Yeh Form F1 aur Class Board (CB-1/CB-2) me auto-sync ho jayega.",
-        hinglish_step2: "💡 Remedial list aur analytics dekhne ke liye upar <b>[📊 FLN एनालिटिक्स व रेमेडियल]</b> button use karein.",
-        en: "📊 <b>FLN Assessment:</b><br>Please select proficiency levels (<b>L1 to L5</b>) in the FLN tab. Scores automatically propagate into Form F1 and Class Board (CB-1/CB-2).",
-        en_step2: "💡 Click <b>[📊 FLN Analytics & Remedial]</b> to view progress summaries and students needing remedial attention."
-      },
-
-      class_board: {
-        keywords: ['class board', 'cb', 'cb1', 'cb2', 'cb3', 'cb4', 'cb5', 'बोर्ड', 'क्लास बोर्ड', 'डिस्प्ले बोर्ड', 'स्टार बोर्ड'],
-        hi: "🏫 <b>क्लास बोर्ड (CB 1 से 5):</b><br>यह पूरी कक्षा का संयुक्त बोर्ड है। FLN अंक और हाजिरी यहाँ अपने आप दर्ज हो जाती हैं, आपको दोबारा कुछ नहीं भरना पड़ता।",
-        hi_step2: "💡 CB-1 व 2 FLN के लिए, CB-3 व 4 परीक्षाओं के लिए, और CB-5 हाजिरी के लिए है।",
-        hinglish: "🏫 <b>Class Board (CB 1 to 5):</b><br>Yeh poori class ka common board hai. FLN marks aur attendance yahan auto-sync hote hain, dubara entry nahi karni padti.",
-        hinglish_step2: "💡 CB-1/2 FLN ke liye, CB-3/4 exams ke liye, aur CB-5 monthly attendance ke liye hai.",
-        en: "🏫 <b>Class Boards (CB 1 to 5):</b><br>Summarizes whole-class metrics. FLN scores and attendance sync automatically without duplicate entry.",
-        en_step2: "💡 CB-1/2 tracks FLN, CB-3/4 handles exams, and CB-5 visualizes monthly attendance."
-      },
-
-      backup: {
-        keywords: ['backup', 'restore', 'download backup', 'dusre phone', 'dusra phone', 'बैकअप', 'लोड बैकअप', 'फाइल सेव', 'रीस्टोर', 'लैपटॉप में'],
-        hi: "🛡️ <b>बैकअप व रीस्टोर:</b><br>ऊपर हेडर में <b>[🛡️ बैकअप]</b> बटन दबाएं, फ़ाइल तुरंत डाउनलोड हो जाएगी। इसे अपने WhatsApp या Drive में संभाल कर रख लें, कभी डेटा नहीं खोएगा।",
-        hi_step2: "📲 दूसरे फोन या लैपटॉप में चलाने के लिए <b>[⚙️ सेटिंग्स] ➔ [📂 बैकअप फ़ाइल लोड करें]</b> का उपयोग करें।",
-        hinglish: "🛡️ <b>Data Backup:</b><br>Top bar par <b>[🛡️ बैकअप]</b> click karein, backup file turant download ho jayegi. Ise apne Drive ya WhatsApp par safe rakh sakte hain.",
-        hinglish_step2: "📲 Dusre mobile ya PC me load karne ke liye <b>[⚙️ सेटिंग्स] ➔ [📂 बैकअप फ़ाइल लोड करें]</b> use karein.",
-        en: "🛡️ <b>Backup & Restore:</b><br>Please click <b>[🛡️ Backup]</b> in the top bar to instantly download your class database. Save it to your personal Drive or WhatsApp for lifelong safety.",
-        en_step2: "📲 To transfer to a new device, use <b>[⚙️ Settings] ➔ [📂 Restore Backup File]</b>."
-      },
-
-      drive: {
-        keywords: ['drive', 'gdrive', 'google drive', 'cloud', 'sync', 'apps script', 'script url', 'connect', 'auto save', 'autosave', 'drive fail', 'ड्राइव', 'सिंक', 'क्लाउड', 'गूगल ड्राइव', 'ड्राइव कनेक्ट', 'ड्राइव लोड', 'सिंक नहीं', 'drive connect', 'drive sync', 'cloud sync', 'drive se load', 'ऑटो सेव', 'सिंक कैसे', 'load from drive'],
-        hi: "☁️ <b>Google Drive सिंक:</b><br>कृपया <b>[⚙️ सेटिंग्स]</b> में जाकर अपनी Google Drive कनेक्ट कर लें। इसके बाद आप चाहे फोन पर काम करें या लैपटॉप पर, सारा डेटा अपने आप सिंक रहेगा।",
-        hi_step2: "🔄 कभी इंटरनेट न होने पर भी कोई चिंता नहीं — हेडर में <b>[🛡️ बैकअप]</b> दबाकर ऑफलाइन सुरक्षित रख सकते हैं।",
-        hinglish: "☁️ <b>Google Drive Sync:</b><br><b>[⚙️ Settings]</b> me jakar Google Drive connect karein. Iske baad mobile aur PC dono par data automatically sync rahega.",
-        hinglish_step2: "🔄 Offline hone par bhi top bar par <b>[🛡️ बैकअप]</b> click karke safe JSON download kar sakte hain.",
-        en: "☁️ <b>Google Drive Sync:</b><br>Please connect your Google Drive in <b>[⚙️ Settings]</b>. Your data will seamlessly auto-sync across your mobile, tablet, and PC.",
-        en_step2: "🔄 If offline, tap the green <b>[🛡️ Backup]</b> button to download an instant local snapshot."
-      },
-
-      print: {
-        keywords: ['print', 'pdf', 'booklet', 'hardcopy', 'प्रिंट', 'पीडीएफ', 'बुकलेट', 'कागज', 'प्रिंटिंग'],
-        hi: "🖨️ <b>प्रिंट व पीडीएफ:</b><br>सिंगल पेज के लिए ऊपर <b>[🖨️ प्रिंट]</b> दबाएं। पूरी कक्षा की एक साथ बुकलेट निकालने के लिए <b>[📚 60 पोर्टफोलियो बुकलेट]</b> पर क्लिक करें।",
-        hi_step2: "💡 प्रिंट करते समय 'Background graphics' को हमेशा ऑन रखें ताकि प्रपत्र बिल्कुल साफ़ प्रिंट हों।",
-        hinglish: "🖨️ <b>Print & PDF:</b><br>Single sheet ke liye top bar me <b>[🖨️ प्रिंट]</b> click karein. Poori class ki booklet ke liye <b>[📚 60 पोर्टफोलियो बुकलेट]</b> use karein.",
-        hinglish_step2: "💡 Print settings me 'Background graphics' enable rakhein taaki official layout crystal clear aaye.",
-        en: "🖨️ <b>Print & PDF Export:</b><br>Please tap <b>[🖨️ Print]</b> for the active sheet, or click <b>[📚 60 Portfolio Booklets]</b> to batch-export the entire class into a single PDF.",
-        en_step2: "💡 Enable 'Background graphics' in your print dialog to ensure crystal clear formatting."
-      },
-
-      cross_device: {
-        keywords: ['phone', 'mobile', 'laptop', 'computer', 'pc', 'iphone', 'android', 'mac', 'dusre phone', 'dusre mobile', 'दो फोन', 'मोबाइल में', 'कंप्यूटर में'],
-        hi: "📱💻 <b>मोबाइल व कंप्यूटर दोनों में:</b><br>आप मोबाइल और लैपटॉप दोनों पर आसानी से चला सकते हैं। सेटिंग्स में <b>Google Drive सिंक</b> ऑन कर लें, या बैकअप फ़ाइल WhatsApp पर भेजकर दूसरे डिवाइस में लोड कर लें।",
-        hi_step2: "💡 किसी भी डिवाइस पर काम करें, डेटा हमेशा सुरक्षित और उपलब्ध रहेगा।",
-        hinglish: "📱💻 <b>Mobile & PC Support:</b><br>Mobile aur laptop dono me aasaani se chalayein. Settings me <b>Google Drive Sync</b> connect karein ya backup file WhatsApp se share karke load kar lein.",
-        hinglish_step2: "💡 Kisi bhi device par kaam karein, data hamesha safe aur synchronized rahega.",
-        en: "📱💻 <b>Cross-Device Support:</b><br>Works smoothly across Android, iPhone, Windows, and Mac. Connect <b>Google Drive</b> in Settings or transfer your backup JSON file.",
-        en_step2: "💡 Work from anywhere — your class database stays synchronized and safe."
-      },
-
-      export_formats: {
-        keywords: ['export', 'excel', 'csv', 'jpeg', 'jpg', 'image', 'photo download', 'एक्सेल', 'फोटो डाउनलोड'],
-        hi: "💾 <b>एक्सपोर्ट प्रारूप:</b><br>1. पूरा डेटा ➔ <b>JSON बैकअप</b>。<br>2. हाजिरी व छात्र सूची ➔ <b>Excel/CSV</b>。<br>3. वर्तमान प्रपत्र ➔ <b>JPEG फ़ोटो या PDF</b>।",
-        hi_step2: "💡 रिपोर्ट्स टैब में जाकर आप किसी भी शीट को 1 क्लिक में एक्सेल या इमेज के रूप में डाउनलोड कर सकते हैं।",
-        hinglish: "💾 <b>Export Formats:</b><br>1. Complete Database ➔ <b>JSON Backup</b>.<br>2. Attendance & Students ➔ <b>Excel/CSV</b>.<br>3. Active Sheet ➔ <b>JPEG Photo ya PDF</b>.",
-        hinglish_step2: "💡 Reports workspace me kisi bhi proforma ko 1 click me download kar sakte hain.",
-        en: "💾 <b>Export Options:</b><br>1. Complete Database ➔ <b>JSON Backup</b>.<br>2. Rosters & Attendance ➔ <b>Excel/CSV</b>.<br>3. Active Proformas ➔ <b>JPEG Image or PDF</b>.",
-        en_step2: "💡 Check the Reports workspace to export customized spreadsheets and graphics."
-      },
-
-      session_2027: {
-        keywords: ['session', '2026', '2027', 'सत्र', 'नया सत्र'],
-        hi: "📅 <b>सत्र 2026-2027:</b><br>यह ऐप शैक्षणिक सत्र 2026-2027 के नवीनतम विभागीय प्रारूप और 12 प्रपत्रों पर आधारित है।",
-        hi_step2: "💡 नए सत्र के लिए मास्टर रजिस्टर में बच्चों की सूची अपडेट कर लें, बाकी सभी फॉर्म स्वतः तैयार हो जाएंगे।",
-        hinglish: "📅 <b>Session 2026-2027:</b><br>Yeh app academic session 2026-2027 ke latest official format aur 12 proformas par based hai.",
-        hinglish_step2: "💡 Naye session ke liye Master Register me students update karein, baaki sabhi sheets auto-ready ho jayengi.",
-        en: "📅 <b>Academic Session 2026-2027:</b><br>Engineered to match official 2026-2027 departmental formats across all 12 portfolio proformas.",
-        en_step2: "💡 Simply populate the Master Roster for the new session — all subsequent registers align automatically."
-      },
-
-      startup_advice: {
-        keywords: ['kahan se shuru', 'kaise shuru', 'shuruat', 'pahle kya', 'first step', 'शुरुआत', 'कहाँ से शुरू', 'पहले क्या'],
-        hi: "🚀 <b>शुरुआत के 3 आसान कदम:</b><br>1. <b>मास्टर रजिस्टर</b> में बच्चों के नाम दर्ज करें。<br>2. <b>हाजिरी टैब</b> में दैनिक उपस्थिति भरें。<br>3. <b>[🛡️ बैकअप]</b> दबाकर अपनी फ़ाइल सुरक्षित कर लें।",
-        hi_step2: "💡 इसके बाद सभी 12 प्रपत्र और क्लास बोर्ड अपने आप भर जाएंगे!",
-        hinglish: "🚀 <b>3 Quick Steps to Start:</b><br>1. <b>Master Register</b> me students enter karein.<br>2. <b>Attendance tab</b> me daily attendance mark karein.<br>3. <b>[🛡️ बैकअप]</b> click karke backup download kar lein.",
-        hinglish_step2: "💡 Iske baad sabhi 12 sheets aur Class Board automatically fill ho jayenge!",
-        en: "🚀 <b>Quick 3-Step Start:</b><br>1. Enter student names in <b>Master Roster</b>.<br>2. Mark daily attendance in the <b>Attendance tab</b>.<br>3. Tap <b>[🛡️ Backup]</b> to download your secure checkpoint.",
-        en_step2: "💡 All 12 portfolio dossier sheets and Class Boards will populate automatically!"
+      add_student: {
+        keywords: [
+          'add student', 'naya student', 'bache ko add', 'admission', 'student kaise dale', 'baccha add',
+          'naam jodna', 'new admission', 'student entry', 'student kaise jode', 'छात्र जोड़ें', 'नया दाखिला', 'दाखिला'
+        ],
+        hinglish: "➕ <b>Add Student:</b> Master Student Roster tab me jakar <b>[➕ छात्र जोड़ें]</b> click karein aur Name, Father Name, DOB, SRN fill karein.",
+        en: "➕ <b>Add Student:</b> Open Master Student Roster tab, click <b>[➕ Add Student]</b>, and enter Name, Father's Name, DOB, and SRN."
       },
 
       insert_student_between: {
-        keywords: ['बीच', 'बीच में', 'bich', 'bich me', 'छूटा', 'छूटा बच्चा', 'बीच में छात्र', 'bich me student', 'bich me add', 'roll insert', 'insert student', 'missed student', 'roll 5', 'roll number shift', 'की-शिफ्ट', 'छूट गया', 'chhut gaya', 'chuta bacha', 'insert row', 'इन-बिटवीन'],
-        hi: "➕ <b>बीच में छूटा हुआ छात्र जोड़ना:</b><br>1. मास्टर रोस्टर के ऊपर <b>[➕ बीच में छात्र जोड़ें (Insert Row)]</b> बटन दबाएं और इच्छित रोल नंबर (जैसे 5) दर्ज करें。<br>2. अथवा जिस पंक्ति के ऊपर छात्र जोड़ना है, उसके आगे हरे <b>[➕]</b> बटन पर क्लिक करें。<br>• <b>सुरक्षा:</b> नीचे के सभी छात्रों की उपस्थिति (Attendance), FLN और परीक्षा अंक स्वतः सुरक्षित रूप से एक पंक्ति नीचे खिसक जाएंगे!",
-        hi_step2: "💡 पहले 30 बच्चों का डेटा मिटाने की बिल्कुल आवश्यकता नहीं है। पुराना बच्चा (जैसे रोल 5) स्वतः रोल 6 पर अपने पूरे रिकॉर्ड सहित चला जाएगा।",
-        hinglish: "➕ <b>Insert Student in Between:</b><br>1. Top toolbar me <b>[➕ बीच में छात्र जोड़ें]</b> click karein aur target roll number (e.g. 5) enter karein.<br>2. Ya student row ke aage green <b>[➕]</b> icon dabayein.<br>• <b>Safety:</b> Sabhi lower students ki attendance, FLN aur result scores automatically 1 row neeche safely shift ho jayenge!",
-        hinglish_step2: "💡 Old students ka 1 bhi mark ya attendance lost nahi hoga; system full lockstep shifting maintain karta hai.",
-        en: "➕ <b>Insert Missed Student In Between:</b><br>Click <b>[➕ Insert Row In Between]</b> at the top and specify the target roll number (e.g. 5), or click the green <b>[➕]</b> button directly on any student row.<br>All subsequent student attendance, FLN levels, and exam scores shift down automatically in perfect sync.",
-        en_step2: "💡 Zero need to delete or re-type records; the previous student safely becomes the next roll number with all data intact."
+        keywords: [
+          'beech me student', 'insert student', 'beech me jodna', 'roll number ke beech', 'beech me',
+          'insert row', 'beech me naam', 'बीच में छात्र जोड़ना', 'रोल के बीच'
+        ],
+        hinglish: "📌 <b>Insert Student:</b> Master Roster me jis row ke beech me add karna hai, uske samne <b>[➕ Insert]</b> click karein. Niche ke sabhi roll numbers auto-shift ho jayenge.",
+        en: "📌 <b>Insert Student:</b> In Master Roster, click <b>[➕ Insert]</b> on target row. Subsequent student roll numbers shift down automatically."
       },
 
-      excel_copy_paste: {
-        keywords: ['copy', 'कॉपी', 'paste', 'पेस्ट', 'copy excel', 'excel copy', 'paste excel', 'कॉलम सेलेक्ट', 'copy nahi ho raha', 'select nahi hota', 'pura data copy', 'ctrl+v', 'tsv', 'एक्सेल कॉपी', 'कॉपी कैसे', 'excel me bhejna', 'क्लिपबोर्ड', 'clipboard', 'माउस सेलेक्ट', 'घसीटना', 'drag select', 'select all'],
-        hi: "📋 <b>Excel में डेटा कॉपी-पेस्ट करना:</b><br>• <b>माउस से एक ही कॉलम क्यों सेलेक्ट होता है?</b> क्योंकि हर सेल एक लाइव इनपुट बॉक्स (`<input>`) है, जिसमें ब्राउज़र माउस ड्रैग को अंदर ही लॉक कर देता है。<br>• <b>आसान समाधान:</b> मास्टर रोस्टर के ऊपर नीला बटन <b>[📋 पूरा डेटा कॉपी करें (For Excel)]</b> दबाएं। पूरा 22-कॉलम डेटा क्लिपबोर्ड में आ जाएगा। अब सीधे Excel खोलकर <b>Ctrl + V</b> दबा दें!",
-        hi_step2: "💡 हाजिरी और परीक्षा परिणाम टैब में भी <b>[📋 Excel हेतु कॉपी करें]</b> बटन दिया गया है — एक क्लिक में पूरा डेटा एक्सेल में चला जाता है।",
-        hinglish: "📋 <b>Excel Copy-Paste Guide:</b><br>• <b>Mouse se 1 column kyu select hota hai?</b> Kyunki cells editable `<input>` fields hain jahan browser multi-cell selection block karta hai.<br>• <b>1-Click Solution:</b> Master Roster ke upar blue <b>[📋 पूरा डेटा कॉपी करें (For Excel)]</b> button dabayein, fir Excel kholkar <b>Ctrl + V</b> press karein — saare 22 columns perfect paste honge!",
-        hinglish_step2: "💡 Attendance Register aur Exam Results me bhi 1-click Excel copy buttons available hain.",
-        en: "📋 <b>Excel Copy-Paste Solution:</b><br>• <b>Why does mouse drag only select 1 column?</b> Because each cell is an active `<input>` box where browsers constrain mouse selection.<br>• <b>1-Click Fix:</b> Simply click <b>[📋 Copy for Excel]</b> at the top, then open Excel and press <b>Ctrl + V</b>. All 22 columns paste with immaculate grid alignment!",
-        en_step2: "💡 Dedicated 1-click Excel copy buttons are also available in Attendance Register and Exam Results."
+      slc_transfer: {
+        keywords: [
+          'slc', 'tc', 'naam katna', 'tc katna', 'school chhod diya', 'student delete',
+          'delete student', 'remove student', 'naam hatana', 'एसलसी', 'नाम काटना', 'टीसी', 'छात्र हटाना'
+        ],
+        hinglish: "✂️ <b>SLC / TC:</b> Student ko delete karne ke bajay uski row me <b>SLC</b> checkbox mark karein, taaki purani attendance safe rahe aur active list se hat jaye.",
+        en: "✂️ <b>SLC / Transfer:</b> Mark the <b>SLC</b> checkbox in student's row instead of deleting, preserving historical records."
+      },
+
+      roll_order: {
+        keywords: [
+          'roll number', 'roll no', 'kram sankhya', 'roll change', 'serial number', 'sort roll',
+          'alphabetical', 'roll kaise badle', 'a-z sort', 'रोल नंबर', 'क्रम संख्या', 'सॉर्ट'
+        ],
+        hinglish: "🔢 <b>Roll Number:</b> Master Roster me <b>[A-Z Sort]</b> daba kar alphabetical order set karein, ya roll number cell par double-click karke direct edit karein.",
+        en: "🔢 <b>Roll Numbers:</b> Click <b>[A-Z Sort]</b> in Master Roster to reorder alphabetically, or double-click any roll number cell to edit directly."
+      },
+
+      fln: {
+        keywords: [
+          'fln', 'fln worksheet', 'fln level', 'f1 sheet', 'f2 sheet', 'baseline', 'midline',
+          'endline', 'l1 l2 l3', 'fln marks', 'fln score', 'level 1', 'level 2', 'एफएलएन', 'लेवल 1 2 3'
+        ],
+        hinglish: "📊 <b>FLN:</b> FLN tab me student ka level (<b>L1 se L5</b>) select karein. Baseline, Midline aur Endline scores Class Board (CB-1/CB-3) me auto-sync ho jate hain.",
+        en: "📊 <b>FLN:</b> Select levels (<b>L1 to L5</b>) in FLN tab. Baseline, Midline, and Endline entries automatically sync to Class Board CB-1 and CB-3."
+      },
+
+      class_board: {
+        keywords: [
+          'class board', 'cb tab', 'cb page', 'board summary', 'class board kaise bhare', 'क्लास बोर्ड', 'सीबीआई', 'सी बी'
+        ],
+        hinglish: "📋 <b>Class Board (CB 1-5):</b> CB-1 (FLN) aur CB-5 (Attendance) auto-sync hote hain. CB-2 (Monthly Syllabus), CB-3 (Profile), CB-4 (Timetable) me direct click karke entry karein.",
+        en: "📋 <b>Class Board (CB 1-5):</b> CB-1 (FLN) and CB-5 (Attendance) auto-sync. CB-2 (Syllabus), CB-3 (Profile), CB-4 (Timetable) are fillable directly."
+      },
+
+      cb1_fln: {
+        keywords: [
+          'cb1', 'cb 1', 'cb-1', 'class board 1', 'fln summary board', 'सी बी 1', 'सीबी 1'
+        ],
+        hinglish: "📋 <b>CB-1 (FLN Board):</b> FLN tab me bhare gaye Baseline, Midline aur Endline scores CB-1 me automatically sync ho jate hain.",
+        en: "📋 <b>CB-1:</b> Baseline, Midline, and Endline scores from FLN tab automatically sync into CB-1."
+      },
+
+      cb2_syllabus: {
+        keywords: [
+          'cb2', 'cb 2', 'cb-2', 'class board 2', 'monthly diary', 'syllabus covered', 'pathykram', 'सी बी 2', 'सीबी 2'
+        ],
+        hinglish: "📖 <b>CB-2 (Monthly Diary):</b> Har mahine padhaye gaye chapters aur syllabus coverage ko CB-2 me month-wise direct type karein.",
+        en: "📖 <b>CB-2:</b> Record monthly syllabus coverage and chapters directly in CB-2."
+      },
+
+      cb3_profile: {
+        keywords: [
+          'cb3', 'cb 3', 'cb-3', 'class board 3', 'category wise', 'sc st obc cwsn', 'age wise', 'social category', 'सी बी 3', 'सीबी 3'
+        ],
+        hinglish: "👥 <b>CB-3 (Student Profile):</b> Master Roster me bhare data se SC/ST/OBC/General, age aur CWSN summary CB-3 me auto-calculate hoti hai.",
+        en: "👥 <b>CB-3:</b> Category (SC/ST/OBC/Gen), Age, and CWSN summaries calculate automatically from Master Roster."
+      },
+
+      cb4_timetable: {
+        keywords: [
+          'cb4', 'cb 4', 'cb-4', 'class board 4', 'teacher info', 'samay sarini', 'duty committee', 'time table', 'सी बी 4', 'सीबी 4'
+        ],
+        hinglish: "⏰ <b>CB-4 (Time Table & Staff):</b> Teacher details, class timetable aur school committees ka vivaran CB-4 me directly enter karein.",
+        en: "⏰ <b>CB-4:</b> Enter teacher details, time table, and school committee responsibilities directly."
+      },
+
+      cb5_attendance: {
+        keywords: [
+          'cb5', 'cb 5', 'cb-5', 'class board 5', 'hazri abstract', 'monthly attendance cb', 'सी बी 5', 'सीबी 5'
+        ],
+        hinglish: "📊 <b>CB-5 (Attendance Abstract):</b> Monthly attendance register se kul upasthiti, Boys/Girls aur percentage CB-5 me auto-sync hoti hai.",
+        en: "📊 <b>CB-5:</b> Monthly attendance totals, gender-wise breakdown, and percentages auto-sync from Attendance tab."
+      },
+
+      exam_grading: {
+        keywords: [
+          'exam', 'test series', 'grading', 'grade kaise milta', 'marks fill', 'subjective marks',
+          'grade a b c d e', 'grading criteria', 'term 1', 'term 2', 'pariksha', 'अंक', 'ग्रेड', 'परीक्षा'
+        ],
+        hinglish: "📝 <b>Exam & Grading:</b> Subjective Test Series me marks enter karein. Total marks aur grade (<b>A: 85-100%, B: 70-84%, C: 50-69%, D: 33-49%, E: &lt;33%</b>) auto-calculate hote hain.",
+        en: "📝 <b>Exam & Grading:</b> Enter marks in Test Series. Grades (A: 85-100%, B: 70-84%, C: 50-69%, D: 33-49%, E: <33%) calculate automatically."
+      },
+
+      print: {
+        keywords: [
+          'print', 'pdf', 'download pdf', 'printout', 'print kaise nikale', 'save as pdf',
+          'portfolio print', 'ctrl p', 'margin', 'प्रिंट', 'पीडीएफ', 'डाउनलोड'
+        ],
+        hinglish: "🖨️ <b>Print / PDF:</b> Top bar me <b>[🖨️ प्रिंट / PDF]</b> dabayein ya <code>Ctrl + P</code> press karein. 'Save as PDF' chunein aur Margins: 'None' set karein.",
+        en: "🖨️ <b>Print / PDF:</b> Click [Print / PDF] or press Ctrl+P. Choose 'Save as PDF' with Margins set to 'None'."
+      },
+
+      backup: {
+        keywords: [
+          'backup', 'restore', 'save data', 'data gayab', 'data save kaise kare', 'json file',
+          'data kho gaya', 'chala gaya', 'surakshit', 'data lost', 'डेटा गायब', 'बैकअप', 'सुरक्षित'
+        ],
+        hinglish: "🛡️ <b>Backup & Restore:</b> Top bar par <b>[🛡️ बैकअप]</b> dabakar JSON file download karein. Data restore karne ke liye wahi file upload karein — 100% data turant wapas aa jayega.",
+        en: "🛡️ <b>Backup & Restore:</b> Click [Backup] in top bar to save JSON file. Upload the same file to restore 100% data anytime."
+      },
+
+      cross_device: {
+        keywords: [
+          'dusra phone', 'naye mobile', 'dusre phone', 'transfer data', 'change device', 'phone change',
+          'computer me kaise khole', 'laptop me bheje', 'share data', 'दूसरे फोन में', 'नया फोन'
+        ],
+        hinglish: "📲 <b>Device Transfer:</b> Purane phone me <b>[🛡️ बैकअप]</b> se JSON file download karein, use WhatsApp se naye phone me bhejein aur naye phone me 'Restore' par click karein.",
+        en: "📲 <b>Device Transfer:</b> Download JSON backup from old device, send via WhatsApp/Email, and click 'Restore' on your new device."
+      },
+
+      drive: {
+        keywords: [
+          'drive', 'google drive', 'cloud sync', 'drive backup', 'drive par save', 'ड्राइव', 'क्लाउड बैकअप'
+        ],
+        hinglish: "☁️ <b>Google Drive Sync:</b> Settings ➔ Google Drive Backup me jakar apna Drive link connect karein taaki 1-click cloud backup le sakein.",
+        en: "☁️ <b>Google Drive:</b> Connect your Drive in Settings ➔ Google Drive Backup for 1-click cloud synchronization."
       },
 
       multi_class: {
-        keywords: ['class', 'कक्षा', 'kaksha', 'dusri', 'doosri', 'switch', 'switcher', 'स्विच', 'बदलें', 'badle', 'badal', 'दूसरी', 'दूसरी कक्षा', 'doosri class', 'class switch', 'multi class', 'कक्षा बदलें', 'नई कक्षा जोड़ें', 'new class', 'कक्षा 3-a', 'कक्षा 5-b', 'profile switcher', 'मल्टी क्लास'],
-        hi: "🏫 <b>मल्टी-क्लास प्रोफ़ाइल स्विचर:</b><br>शीर्ष बार में <b>[🏫 कक्षा 3-A ▾]</b> बटन दबाएं। यहाँ से आप नई कक्षाएं (जैसे 4-A, 5-B) जोड़ सकते हैं और बिना किसी डेटा टकराव (collision) के एक क्लिक में कक्षाएं बदल सकते हैं। प्रत्येक कक्षा का 500MB+ डेटा पूरी तरह अलग व सुरक्षित रहता है।",
-        hi_step2: "💡 सक्रिय कक्षा को सुरक्षित रखने के लिए उसे तब तक डिलीट नहीं किया जा सकता जब तक आप किसी दूसरी कक्षा पर स्विच न कर लें।",
-        hinglish: "🏫 <b>Multi-Class Profile Switcher:</b><br>Top bar me <b>[🏫 कक्षा 3-A ▾]</b> click karein. Yahan se aap multiple classes (e.g. 4-A, 5-B) create aur switch kar sakte hain. Har class ka data 500MB+ IndexedDB me completely isolated aur safe rehta hai.",
-        hinglish_step2: "💡 Active class accidental deletion se protected rehti hai.",
-        en: "🏫 <b>Multi-Class Profile Switcher:</b><br>Click the <b>[🏫 Class 3-A ▾]</b> dropdown in the top header. You can create and switch between multiple class profiles instantly. Each class enjoys dedicated 500MB+ IndexedDB storage with zero data overlap.",
-        en_step2: "💡 The currently active class cannot be deleted accidentally without switching first."
+        keywords: [
+          'multi class', 'dusri class', 'naya section', 'class add', 'class switch', 'do class',
+          'class change', 'section change', 'दूसरी कक्षा', 'क्लास जोड़ें', 'कक्षा बदलें'
+        ],
+        hinglish: "🏫 <b>Multi-Class:</b> Top bar me <b>[🏫 मेरी कक्षा ▾]</b> par click karein. Wahan se <b>[➕ नई कक्षा जोड़ें]</b>, rename karein ya classes switch karein.",
+        en: "🏫 <b>Multi-Class:</b> Use [My Class] in top header to add new sections, rename, or switch between classes."
       },
 
-      auth_security: {
-        keywords: ['password', 'passcode', 'preview', 'प्रिव्यू', 'preview mode', 'प्रिव्यू मोड', 'पासवर्ड', '31032027', 'unlock', 'lock', 'लॉक क्यों', 'unlock passcode', 'अधिकृत', 'authorize', 'सुरक्षा कोड', 'एडिट नहीं हो रहा'],
-        hi: "🛡️ <b>सुरक्षा व प्रिव्यू मोड:</b><br>अनधिकृत डिवाइस पर ऐप केवल 'प्रिव्यू मोड' में खुलता है ताकि कोई अनजान व्यक्ति आपका डेटा न बदल सके। डेटा एडिट करने हेतु शीर्ष पर <b>[🔐 अधिकृत करें]</b> दबाकर पासवर्ड <b>31032027</b> दर्ज करें। एक बार दर्ज करने पर डिवाइस अधिकृत हो जाता है।",
-        hi_step2: "💡 सुरक्षा हेतु पासवर्ड SHA-256 सुरक्षित एन्क्रिप्शन में सुरक्षित है और कभी भी प्लेन-टेक्स्ट में लीक नहीं होता।",
-        hinglish: "🛡️ <b>Security & Preview Mode:</b><br>Unauthorized devices par app read-only 'Preview Mode' me rehta hai. Editing unlock karne ke liye top par <b>[🔐 अधिकृत करें]</b> click karke password <b>31032027</b> enter karein.",
-        hinglish_step2: "💡 Device authorization secure cryptographic token se protect rehta hai.",
-        en: "🛡️ <b>Security & Preview Mode:</b><br>Unrecognized devices open strictly in read-only 'Preview Mode' to protect sensitive student records. To enable edits, click <b>[🔐 Authorize]</b> and enter passcode <b>31032027</b>.",
-        en_step2: "💡 Credentials are protected with SHA-256 cryptographic hashing with zero plain-text leakage."
+      photo_upload: {
+        keywords: [
+          'photo', 'student photo', 'bacche ki photo', 'picture upload', 'photo kaise lagaye', 'image add', 'फोटो', 'तस्वीर'
+        ],
+        hinglish: "📷 <b>Student Photo:</b> Portfolio tab me student photo box par click karein aur device se photo select karein. Photo offline compress hokar auto-save ho jayegi.",
+        en: "📷 <b>Student Photo:</b> Click photo placeholder in Student Portfolio tab to upload and compress photo offline."
       },
 
-      shortcuts: {
-        keywords: ['shortcut', 'shortcuts', 'keyboard', 'key', 'शॉर्टकट', 'कीबोर्ड'],
-        hi: "⌨️ <b>उपयोगी शॉर्टकट्स:</b><br>• <b>Ctrl + S:</b> तुरंत डेटा सुरक्षित सेव करें。<br>• <b>Ctrl + Z:</b> गलती तुरंत सुधारें (Undo)।<br>• <b>Arrow Keys:</b> हाजिरी में तेजी से आगे बढ़ें।",
-        hi_step2: "💡 इन शॉर्टकट्स से आपका कार्य बहुत तेज़ और आसान हो जाता है।",
-        hinglish: "⌨️ <b>Productivity Shortcuts:</b><br>• <b>Ctrl + S:</b> Instant Save.<br>• <b>Ctrl + Z:</b> Instant Undo.<br>• <b>Arrow Keys:</b> Fast Attendance Entry.",
-        hinglish_step2: "💡 In shortcuts se aapka typing aur entry speed bahut fast ho jata hai.",
-        en: "⌨️ <b>Productivity Shortcuts:</b><br>• <b>Ctrl + S:</b> Immediate database save.<br>• <b>Ctrl + Z:</b> Instant undo.<br>• <b>Arrow Keys:</b> Rapid cell navigation.",
-        en_step2: "💡 Use these shortcuts to double your entry speed across large registers."
+      offline_support: {
+        keywords: [
+          'internet', 'offline', 'net chahiye', 'wifi', 'bina net', 'data pack', 'chalta hai offline', 'इंटरनेट', 'ऑफ़लाइन', 'नेट'
+        ],
+        hinglish: "🌐 <b>100% Offline:</b> Is app ko chalane ke liye kisi internet, SIM ya WiFi ki zaroorat nahi hai. Sabhi features school me 100% offline kaam karte hain.",
+        en: "🌐 <b>100% Offline:</b> Works fully offline without requiring SIM data or WiFi inside classrooms."
+      },
+
+      locked_cell: {
+        keywords: [
+          'cell edit nahi', 'type nahi ho raha', 'box band hai', 'gray cell', 'locked cell', 'formula cell', 'change nahi ho raha', 'एडिट नहीं हो रहा'
+        ],
+        hinglish: "🔒 <b>Formula Cell:</b> Gray cells (Total, %, Grade, CB summary) auto-calculate hote hain. Inhe badalne ke liye source attendance ya marks cell me change karein.",
+        en: "🔒 <b>Protected Cells:</b> Formula-driven total and percentage cells are read-only. Edit the underlying input values directly."
+      },
+
+      login_password: {
+        keywords: [
+          'password', 'login password', 'pin bhul gaye', 'app lock', 'teacher login', 'पासवर्ड', 'पिन', 'लॉगिन'
+        ],
+        hinglish: "🔐 <b>App Access:</b> Yeh app bina kisi login ya password ke open hoti hai. Agar Settings me PIN lagaya hai to wahi PIN use karein.",
+        en: "🔐 <b>App Access:</b> Opens directly without mandatory login. Use custom PIN only if configured in Settings."
+      },
+
+      clear_data: {
+        keywords: [
+          'reset app', 'pura data saaf', 'delete all', 'naya saal', 'new session', 'sab delete', 'रीसेट'
+        ],
+        hinglish: "⚠️ <b>Reset / New Session:</b> Pehle top bar se <b>[🛡️ बैकअप]</b> zaroor download karein, phir Settings me New Class add karein ya Data Reset karein.",
+        en: "⚠️ <b>Reset:</b> Download [Backup] first, then create a new class profile or reset data in Settings."
+      },
+
+      mobile_screen: {
+        keywords: [
+          'mobile me chhota', 'zoom', 'screen fit', 'bada kaise kare', 'chhota dikh raha', 'ज़ूम', 'स्क्रीन'
+        ],
+        hinglish: "📱 <b>Mobile View:</b> Do ungliyo (pinch) se screen zoom-in / zoom-out karein. Behtar view ke liye mobile ko Landscape (aadha) mode me rotate karein.",
+        en: "📱 <b>Mobile View:</b> Pinch to zoom in/out, or rotate phone to Landscape orientation for wider register view."
+      },
+
+      ink_theme: {
+        keywords: [
+          'ink', 'color', 'pen color', 'neela lal', 'blue red', 'rang', 'ink guideline', 'रंग', 'पेन'
+        ],
+        hinglish: "✒️ <b>Ink Guidelines:</b> Niyam anusar regular entries ke liye Blue/Black ink, sundays/holidays ke liye Red aur verification ke liye Green ink use hoti hai.",
+        en: "✒️ <b>Ink Guidelines:</b> Blue/Black ink for routine entries, Red for holidays, and Green for official verification."
+      },
+
+      feedback_issue: {
+        keywords: [
+          'feedback', 'suggest', 'sujhav', 'report issue', 'feedback form', 'सुझाव', 'फीडबैक'
+        ],
+        hinglish: "📝 <b>Feedback:</b> Settings tab me jakar <b>[📝 सुझाव व शिकायत]</b> par click karein aur apna message submit karein.",
+        en: "📝 <b>Feedback:</b> Open Settings tab and click [Feedback] to submit your suggestions or issues."
+      },
+
+      excel_copy_paste: {
+        keywords: [
+          'excel', 'copy paste', 'sheet se copy', 'excel se import', 'paste kaise kare', 'एकसेल'
+        ],
+        hinglish: "📋 <b>Excel Copy-Paste:</b> Master Roster me kisi bhi cell par click karke Excel se copied table direct paste (Ctrl+V) kar sakte hain.",
+        en: "📋 <b>Excel Copy-Paste:</b> Click any cell in Master Roster and paste (Ctrl+V) tabular data copied directly from Excel."
+      },
+
+      sheets_12: {
+        keywords: [
+          '12 sheets', 'sheets', 'pages', 'kitne page', 'portfolio me kya hai', 'forms', 'पन्ने', 'शीट'
+        ],
+        hinglish: "📑 <b>Portfolio Structure:</b> Is app me Student Cover, Master Roster, Monthly Attendance (11 mahine), FLN Worksheets (F1/F2), Class Board (CB 1-5) aur Test Series shamil hain.",
+        en: "📑 <b>Portfolio:</b> Includes Student Cover, Master Roster, 11 Attendance months, FLN F1/F2, Class Board CB 1-5, and Test Series."
+      },
+
+      privacy: {
+        keywords: [
+          'privacy', 'safe', 'data chori', 'leak', 'server', 'suraksha', 'प्राइवेसी', 'सुरक्षा'
+        ],
+        hinglish: "🔒 <b>Data Privacy:</b> 100% private & client-side. Koi bhi data kisi server par store nahi hota, sab aapke browser IndexedDB me safe rehta hai.",
+        en: "🔒 <b>Privacy:</b> 100% client-side privacy. No student data is sent to external servers."
       }
     };
 
     function detectLang(str) {
-      if (/[\u0900-\u097F]/.test(str)) return 'hi';
-      const markers = [
-        'namaste', 'tum', 'aap', 'kaun', 'kon', 'kya', 'hai', 'hain', 'ho', 'hoon', 'mera', 'meri', 'mere',
-        'karo', 'kare', 'karein', 'karna', 'karte', 'kaise', 'kaisa', 'kaisi', 'kaha', 'kahan', 'kidhar',
-        'kyu', 'kyun', 'batao', 'bataiye', 'bol', 'bolo', 'chahiye', 'sakta', 'sakte', 'sakti', 'nahi',
-        'nhi', 'mat', 'hoga', 'hogi', 'honge', 'baccha', 'bache', 'naam', 'paas', 'bhi', 'khol', 'kitna',
-        'kitne', 'le', 'lo', 'lein', 'jana', 'jane', 'aaya', 'aaye', 'usse', 'wali', 'wale', 'wala', 'kharab',
-        'udd', 'kisi', 'karke', 'dekh', 'dikhaye', 'chura', 'chori', 'chhod', 'nikal', 'gaya', 'gaye',
-        'rakhein', 'jaanta', 'rahega', 'karu', 'theek', 'hisaab', 'gadbad', 'salah', 'sikhao', 'bhare',
-        'bharein', 'rakha', 'fir', 'kuch', 'aur', 'hua', 'dikha', 'aage', 'kisne', 'banaya', 'kiski',
-        'kiska', 'kisko', 'toh', 'pe', 'mein', 'chal', 'chalta', 'chala', 'raha', 'rahi', 'rahe',
-        'dein', 'baat', 'karte', 'sathi', 'meena', 'sir',
-        'shabash', 'shukriya', 'dhanyawad', 'dhanyavad', 'madad', 'liye', 'achha', 'accha', 'badhiya', 'mast'
-      ];
-      const words = str.toLowerCase().split(/[^a-zA-Z0-9]+/);
-      return words.some(w => markers.includes(w)) ? 'hinglish' : 'en';
+      return 'hinglish';
     }
 
-    // --- High-Performance Lightweight Levenshtein Distance ---
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
     function calcLevenshtein(a, b) {
       if (a === b) return 0;
       if (!a.length) return b.length;
@@ -21524,20 +21574,33 @@ window.toggleOfflineAiChat = function() {
       return troubleMarkers.some(m => lower.includes(m));
     }
 
-    function escapeRegExp(string) {
-      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
     function matchTopic(q) {
       const cleanQ = q.toLowerCase();
 
-      // Direct priority for attendance symbols query
+      // 1. Attendance symbols priority (P, A, H, L)
       if (/\b(p\s*a|p\s*(?:aur|or|and)\s*a|p\s*a\s*h\s*l|present\s*absent)\b/i.test(cleanQ) || 
           (/\b(p|a|h|l)\b/i.test(cleanQ) && /(matlab|matalab|meaning|arth|full\s*form|chinh|kya\s*hai|arth|मतलब)/i.test(cleanQ))) {
         return 'attendance_symbols';
       }
 
-      // Negation Classifier: If query negates adding or entering, redirect to remove/slc
+      // 2. Cross-Device / Phone Transfer Priority
+      if (/(dusra\s*phone|dusre\s*phone|naya\s*phone|naye\s*mobile|naye\s*phone|phone\s*change|device\s*transfer|transfer\s*data|laptop\s*me|computer\s*me|dusre\s*device)/i.test(cleanQ)) {
+        return 'cross_device';
+      }
+
+      // 3. Class Board Specific Sub-pages
+      if (/\b(cb\s*1|cb1|class\s*board\s*1)\b/i.test(cleanQ)) return 'cb1_fln';
+      if (/\b(cb\s*2|cb2|class\s*board\s*2)\b/i.test(cleanQ)) return 'cb2_syllabus';
+      if (/\b(cb\s*3|cb3|class\s*board\s*3)\b/i.test(cleanQ)) return 'cb3_profile';
+      if (/\b(cb\s*4|cb4|class\s*board\s*4)\b/i.test(cleanQ)) return 'cb4_timetable';
+      if (/\b(cb\s*5|cb5|class\s*board\s*5)\b/i.test(cleanQ)) return 'cb5_attendance';
+
+      // 4. Formula Logic Priority
+      if (/(percentage|pratishat|percent|formula|working\s*days)/i.test(cleanQ) && /(attendance|hazri|nikalta|rule|logic)/i.test(cleanQ)) {
+        return 'formula_logic';
+      }
+
+      // 5. Negation Classifier: If query negates adding or entering, redirect to remove/slc
       const isNeg = /\b(nahi|nhi|mat|na|not|never|dont|don't)\b/i.test(cleanQ);
       if (isNeg) {
         if (cleanQ.includes('add') || cleanQ.includes('jod') || cleanQ.includes('enter') || cleanQ.includes('admission') || cleanQ.includes('delete') || cleanQ.includes('hatana') || cleanQ.includes('hata')) {
@@ -21545,8 +21608,21 @@ window.toggleOfflineAiChat = function() {
         }
       }
 
-      const words = cleanQ.split(/[^a-zA-Z0-9\u0900-\u097F]+/).filter(Boolean);
+      // 6. Direct Keyword Shortcuts
+      if (/(beech\s*me|bich\s*me|between|insert\s*row)/i.test(cleanQ)) return 'insert_student_between';
+      if (/(slc|tc|naam\s*kat|school\s*chhod|student\s*delete|remove\s*student|naam\s*hatana)/i.test(cleanQ)) return 'slc_transfer';
+      if (/(offline|internet|wifi|net\s*chahiye|bina\s*net|data\s*pack)/i.test(cleanQ)) return 'offline_support';
+      if (/(drive|google\s*drive|cloud\s*sync)/i.test(cleanQ)) return 'drive';
+      if (/(excel|sheet\s*se|copy\s*paste)/i.test(cleanQ)) return 'excel_copy_paste';
+      if (/(ink|pen\s*color|neela\s*lal|blue\s*red|rang)/i.test(cleanQ)) return 'ink_theme';
+      if (/(feedback|sujhav|suggest|shikayat\s*form)/i.test(cleanQ)) return 'feedback_issue';
+      if (/(locked|edit\s*nahi|type\s*nahi|box\s*band|gray\s*cell|formula\s*cell)/i.test(cleanQ)) return 'locked_cell';
+      if (/(photo|picture|image|tasveer)/i.test(cleanQ)) return 'photo_upload';
+      if (/(zoom|bada\s*kaise|chhota\s*dikh|screen\s*fit|mobile\s*me\s*chhota)/i.test(cleanQ)) return 'mobile_screen';
+      if (/(backup|restore|data\s*gayab|data\s*kho|data\s*save|json)/i.test(cleanQ)) return 'backup';
 
+      // 7. General NLP & Levenshtein Distance Matcher
+      const words = cleanQ.split(/[^a-zA-Z0-9\u0900-\u097F]+/).filter(Boolean);
       let best = null;
       let maxScore = 0;
 
@@ -21556,18 +21632,16 @@ window.toggleOfflineAiChat = function() {
           const lowerKw = kw.toLowerCase();
           const isExactWord = words.includes(lowerKw);
 
-          // Word-boundary and substring matching for all keyword lengths
           if (cleanQ.includes(lowerKw)) {
             const boundaryRegex = new RegExp('(?:^|\\s|[^a-zA-Z0-9\\u0900-\\u097F])' + escapeRegExp(lowerKw) + '(?:$|\\s|[^a-zA-Z0-9\\u0900-\\u097F])', 'i');
             if (boundaryRegex.test(cleanQ)) {
-              score += (lowerKw.length >= 4 ? 5 : 4);
+              score += (lowerKw.length >= 4 ? 6 : 4);
             } else if (lowerKw.length >= 4) {
               score += 3;
             }
           } else if (isExactWord) {
             score += 3;
           } else if (lowerKw.length >= 4) {
-            // Levenshtein Typo tolerance
             const maxDist = lowerKw.length >= 7 ? 2 : 1;
             for (const w of words) {
               if (w.length >= 4 && Math.abs(w.length - lowerKw.length) <= maxDist) {
@@ -21834,31 +21908,271 @@ window.toggleOfflineAiChat = function() {
       }
     }
 
-    function detectSpecialIntent(q) {
-      const clean = q.toLowerCase();
+    // --- 🧮 Offline Math & Calculations Engine ---
+    function solveTeacherMath(q) {
+      const clean = q.toLowerCase().replace(/,/g, ' ').trim();
+      const sal = getSalutation();
 
-      // 0. Creator / Developer Intent
-      const creator_kw = ['who made you', 'kisne banaya', 'kiski app', 'kisne develop kiya', 'who developed', 'developer kaun', 'kiske dwara', 'kisne create kiya', 'किसने बनाया', 'किसकी ऐप', 'डेवलपर कौन'];
+      // A. Attendance Percentage Calculation
+      // Examples: "20 present 24 working days", "agar 20 present hai aur 24 working days hai", "18/22 attendance %"
+      let presentVal = null;
+      let workingVal = null;
+
+      const pMatch = clean.match(/(\d+)\s*(?:din|days)?\s*(?:present|upasthit|hazir)/i) || clean.match(/(?:present|upasthit|hazir)\s*[:=]?\s*(\d+)/i);
+      const wMatch = clean.match(/(\d+)\s*(?:working|karya|total|kul)\s*(?:din|days)?/i) || clean.match(/(?:working|karya|total|kul)\s*(?:din|days)?\s*[:=]?\s*(\d+)/i);
+
+      if (pMatch) presentVal = parseInt(pMatch[1], 10);
+      if (wMatch) workingVal = parseInt(wMatch[1], 10);
+
+      if ((presentVal === null || workingVal === null) && (clean.includes('attendance') || clean.includes('hazri') || clean.includes('percent') || clean.includes('pratishat'))) {
+        const slashMatch = clean.match(/(\d+)\s*\/\s*(\d+)/);
+        if (slashMatch) {
+          presentVal = parseInt(slashMatch[1], 10);
+          workingVal = parseInt(slashMatch[2], 10);
+        }
+      }
+
+      if (presentVal !== null && workingVal !== null && workingVal > 0) {
+        const pct = ((presentVal / workingVal) * 100).toFixed(1);
+        const absent = Math.max(0, workingVal - presentVal);
+        return `🧮 <b>Attendance % Calculation:</b><br>${sal}, <b>${presentVal}</b> Present aur <b>${workingVal}</b> Working Days par:<br>• Absent: <b>${absent}</b> din<br>• Formula: <code>(${presentVal} ÷ ${workingVal}) × 100</code><br>• Attendance Percentage: <b>${pct}%</b>`;
+      }
+
+      // B. Working Days Deduction (Total days - Sundays - Holidays)
+      // e.g. "30 din me 4 sunday aur 2 holiday ho to working days kitne"
+      if ((clean.includes('sunday') || clean.includes('ravivar') || clean.includes('holiday') || clean.includes('chhutti')) && (clean.includes('working') || clean.includes('bach') || clean.includes('din'))) {
+        const totM = clean.match(/(\d+)\s*(?:din|days|kul|total)/i);
+        const sunM = clean.match(/(\d+)\s*(?:sunday|ravivar)/i);
+        const holM = clean.match(/(\d+)\s*(?:holiday|chhutti|avkas)/i);
+
+        if (totM || sunM || holM) {
+          const totalD = totM ? parseInt(totM[1], 10) : 30;
+          const sundays = sunM ? parseInt(sunM[1], 10) : 0;
+          const holidays = holM ? parseInt(holM[1], 10) : 0;
+          const netWorking = Math.max(0, totalD - sundays - holidays);
+          return `📅 <b>Working Days Calculation:</b><br>${sal}, <b>${totalD}</b> kul dino me se <b>${sundays}</b> Sundays aur <b>${holidays}</b> Holidays ghatane par:<br>• Working Days = <code>${totalD} - ${sundays} - ${holidays}</code> = <b>${netWorking} din</b>.`;
+        }
+      }
+
+      // C. Exam Marks to Grade Calculation
+      // Examples: "50 me se 42 marks", "42 out of 50", "marks 68 out of 80", "42/50 grade"
+      let scored = null, maxMarks = null;
+      const m1 = clean.match(/(\d+(?:\.\d+)?)\s*(?:me\s*se|out\s*of)\s*(\d+(?:\.\d+)?)/i);
+      const m2 = clean.match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/i);
+
+      if (m1) {
+        const n1 = parseFloat(m1[1]);
+        const n2 = parseFloat(m1[2]);
+        if (clean.includes('me se') || clean.includes('me say')) {
+          maxMarks = n1; scored = n2;
+        } else {
+          scored = n1; maxMarks = n2;
+        }
+      } else if (m2 && (clean.includes('grade') || clean.includes('marks') || clean.includes('ank') || clean.includes('score') || clean.includes('exam') || clean.includes('test'))) {
+        scored = parseFloat(m2[1]);
+        maxMarks = parseFloat(m2[2]);
+      }
+
+      if (scored !== null && maxMarks !== null && maxMarks > 0) {
+        const pct = ((scored / maxMarks) * 100).toFixed(1);
+        let grade = 'E';
+        let desc = 'Needs Improvement (<33%)';
+        if (pct >= 85) { grade = 'A'; desc = 'Outstanding (85-100%)'; }
+        else if (pct >= 70) { grade = 'B'; desc = 'Very Good (70-84%)'; }
+        else if (pct >= 50) { grade = 'C'; desc = 'Good (50-69%)'; }
+        else if (pct >= 33) { grade = 'D'; desc = 'Satisfactory (33-49%)'; }
+
+        return `📝 <b>Marks & Grade Calculation:</b><br>${sal}, <b>${scored} / ${maxMarks}</b> (${pct}%) par:<br>• Grade: <b>Grade ${grade}</b> (${desc})`;
+      }
+
+      // D. Percentage of a Number (e.g. "500 ka 75 percent", "80% of 250", "20 ka 10%")
+      const pctOfMatch = clean.match(/(\d+(?:\.\d+)?)\s*(?:ka|of)\s*(\d+(?:\.\d+)?)\s*(?:%|percent|pratishat)/i) ||
+                         clean.match(/(\d+(?:\.\d+)?)\s*(?:%|percent|pratishat)\s*(?:ka|of)\s*(\d+(?:\.\d+)?)/i);
+      if (pctOfMatch) {
+        let base = parseFloat(pctOfMatch[1]);
+        let rate = parseFloat(pctOfMatch[2]);
+        if (clean.includes('% of') || clean.includes('percent of')) {
+          rate = parseFloat(pctOfMatch[1]);
+          base = parseFloat(pctOfMatch[2]);
+        }
+        const val = ((base * rate) / 100).toFixed(2).replace(/\.00$/, '');
+        return `🧮 <b>Calculation:</b><br>${sal}, <b>${base}</b> ka <b>${rate}%</b> = <b>${val}</b> hota hai.`;
+      }
+
+      // E. General Safe Arithmetic Calculator (Addition, Subtraction, Multiplication, Division)
+      // Examples: "24 - 4 kitna hota hai", "15 + 18 + 22", "12 * 5", "100 / 4"
+      const mathExprMatch = clean.match(/([\d\.\s\+\-\*/\(\)]+)(?:kitna|calculate|kya hoga|=|\?)/i) ||
+                            clean.match(/^(?:calculate|solv|hisab|jod|ghatao)?\s*([\d\.\s\+\-\*/\(\)]{3,})\s*$/i);
+      if (mathExprMatch) {
+        let rawExpr = mathExprMatch[1].trim();
+        if (/^[0-9\.\s\+\-\*/\(\)]+$/.test(rawExpr) && /[\+\-\*/]/.test(rawExpr)) {
+          try {
+            const sanitized = rawExpr.replace(/[^0-9\.\+\-\*/\(\)]/g, '');
+            const openCount = (sanitized.match(/\(/g) || []).length;
+            const closeCount = (sanitized.match(/\)/g) || []).length;
+            if (openCount === closeCount) {
+              const res = Function(`'use strict'; return (${sanitized})`)();
+              if (typeof res === 'number' && !isNaN(res) && isFinite(res)) {
+                const formatted = Number.isInteger(res) ? res : res.toFixed(2).replace(/\.00$/, '');
+                return `🧮 <b>Math Calculation:</b><br>${sal}, <code>${sanitized}</code> ka sahi uttar = <b>${formatted}</b> hai.`;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+
+      return null;
+    }
+
+    // --- 🛠️ Galti / Error Correction Guide Engine ---
+    function handleMistakeOrError(q) {
+      const clean = q.toLowerCase();
+      const isMistake = /(galti|galat|gadbad|wrong|mistake|bhul|bhol|sudhar|theek karna|change karna|undo|galat ho gaya|galti ho gayi)/i.test(clean);
+      if (!isMistake) return null;
+
+      const sal = getSalutation();
+
+      if (clean.includes('attendance') || clean.includes('hazri')) {
+        return `🙏 <b>Fikar na karein ${sal}!</b><br>Attendance cell par click karke direct sahi letter (<b>P, A, H ya L</b>) type kar dein. Purani galat entry turant overwrite hokar auto-save ho jayegi.`;
+      }
+      if (clean.includes('roll') || clean.includes('naam') || clean.includes('name') || clean.includes('srn') || clean.includes('dob')) {
+        return `🙏 <b>Aap bilkul chinta na karein ${sal}!</b><br>Master Student Roster me jis cell me galat entry hui hai, uspe click karein aur sahi text type kar dein. Record turant auto-save ho jayega.`;
+      }
+      if (clean.includes('delete') || clean.includes('gayab') || clean.includes('kho gaya') || clean.includes('pura data')) {
+        return `🙏 <b>Data Surakshit Hai ${sal}!</b><br>Agar koi bada data galti se hat gaya ho, to top bar par <b>[🛡️ बैकअप]</b> dabakar apni JSON backup file upload kar dein — pehle jaisa 100% data restore ho jayega.`;
+      }
+
+      return `🙏 <b>Aap bilkul chinta na karein ${sal}, sab theek ho jayega!</b><br>• <b>Direct Sudhar:</b> Jis box ya cell me galti hui hai, uspe direct click karke sahi details type kar dein.<br>• <b>Backup Restore:</b> Agar zaroorat ho to top bar par <b>[🛡️ बैकअप]</b> se apni save file restore kar sakte hain.`;
+    }
+
+    // --- 🤝 Human-like Complaint & Feedback Registration Engine ---
+    function handleComplaintAndFeedback(q) {
+      const clean = q.toLowerCase();
+      // Match any complaint, problem, issue, trouble, grievance, defect, bug, dissatisfaction
+      const isComplaint = /(complaint|shikayat|problem|dikkat|issue|pareshan|pareshani|gadbad|kharabi|bug|kharab|bakwas|gussa|bhadak|cheat|fraud|action|problem aayi|problem aa rahi|kaam nahi|chalta nahi|chal nahi|ruk gaya|atak gaya)/i.test(clean);
+      const isFeedback = /(feedback|sujhav|suggest|idea)/i.test(clean);
+
+      if (!isComplaint && !isFeedback) return null;
+
+      const sal = getSalutation();
+
+      if (isComplaint) {
+        return `🙏 <b>Hum aapki pareshani ko poori tarah samajhte hain aur asuvidha ke liye tahe dil se maafi chahte hain, ${sal}.</b><br><br>` +
+               `Aapki complaint turant darj (register) ki jayegi aur agle update me poori tarah sudhar kiya jayega. Complaint register karne ka aasan tarika:<br>` +
+               `1️⃣ Settings tab me jakar <b>[📝 सुझाव व शिकायत]</b> par click karein.<br>` +
+               `2️⃣ Apni samasya aur complaint detail me likhkar <b>[जमा करें (Submit)]</b> dabayein.<br>` +
+               `3️⃣ Yeh seedhe hamare developer review sheet me anonymously darj ho jayegi aur aapki poori madad ki jayegi.<br><br>` +
+               `Aapke sahyog aur keemti feedback ke liye bahut-bahut thank you ${sal}! 🙏`;
+      }
+
+      if (isFeedback) {
+        return `😊 <b>Thank you so much ${sal}! Aapka feedback hamare liye behad keemti hai.</b><br><br>` +
+               `Feedback darj karne ke liye:<br>` +
+               `1️⃣ Settings tab me <b>[📝 सुझाव व शिकायत]</b> form kholein.<br>` +
+               `2️⃣ Apna sujhav type karein aur Submit karein.<br>` +
+               `Aapke sujhav ko aane wale version me zaroor shaamil kiya jayega. Dhanyawad ${sal}! 🙏`;
+      }
+
+      return null;
+    }
+
+    function detectSpecialIntent(q) {
+      const clean = q.toLowerCase().trim();
+
+      // 0. User Apology & Courtesy Welcome Handlers
+      const sorry_kw = ['sorry', 'sry', 'maaf karna', 'maafi', 'galti ho gayi mujhse', 'sorry bol'];
+      if (sorry_kw.some(k => clean.includes(k))) return 'user_sorry';
+
+      const welcome_kw = ['most welcome', 'its my pleasure', 'my pleasure', 'it is my pleasure', 'pleasure'];
+      if (welcome_kw.some(k => clean.includes(k))) return 'courtesy_welcome';
+
+      // 1. Time-specific Greetings (Morning, Afternoon, Evening, Night)
+      const morning_kw = ['good morning', 'good mrg', 'gm', 'shubh prabhat', 'subah bakhair', 'शुभ प्रभात', 'सुप्रभात', 'subah'];
+      if (morning_kw.some(k => clean.includes(k))) return 'greeting_morning';
+
+      const afternoon_kw = ['good afternoon', 'shubh dopahar', 'dopahar', 'शुभ दोपहर'];
+      if (afternoon_kw.some(k => clean.includes(k))) return 'greeting_afternoon';
+
+      const evening_kw = ['good evening', 'shubh sandhya', 'shubh sham', 'शुभ संध्या', 'शुभ शाम'];
+      if (evening_kw.some(k => clean.includes(k))) return 'greeting_evening';
+
+      const night_kw = ['good night', 'shubh ratri', 'शुभ रात्रि'];
+      if (night_kw.some(k => clean.includes(k))) return 'greeting_night';
+
+      // 2. Complaint & Anger De-escalation (Grievance Handling)
+      const complaint_kw = [
+        'complaint', 'shikayat', 'shikayat karni', 'bhadak', 'gussa', 'bakwas', 'fraud', 'action lunga',
+        'barbaad', 'kharab app', 'disappointed', 'bekar', 'ghatiya', 'cheat', 'court', 'case karunga',
+        'शिकायत', 'बकवास', 'खराब', 'गुस्सा', 'फ्रॉड', 'धोखा'
+      ];
+      if (complaint_kw.some(k => clean.includes(k))) return 'complaint';
+
+      // 3. Contact Details / Phone Number / Call Request (Strict Privacy Shield)
+      const contact_kw = [
+        'phone number', 'mobile number', 'contact number', 'contact number do', 'kisse baat karu',
+        'call me', 'call karo', 'number chahiye', 'developer ka number', 'kisse contact kare',
+        'whatsapp number', 'call pe baat', 'phone no', 'mobile no', 'contact', 'फोन नंबर', 'मोबाइल नंबर', 'कॉल करो', 'संपर्क'
+      ];
+      if (contact_kw.some(k => clean.includes(k))) return 'contact';
+
+      // 4. Legal / Official Department Inquiry
+      const legal_kw = [
+        'legal', 'inquiry', 'police', 'mcd order', 'unauthorized', 'official', 'permission', 'kanooni',
+        'vigilance', 'department order', 'विभागीय', 'कानूनी', 'जांच', 'ऑथराइज्ड'
+      ];
+      if (legal_kw.some(k => clean.includes(k))) return 'legal_inquiry';
+
+      // 5. Creator / Developer Query (Neutral Community Answer)
+      const creator_kw = [
+        'who made you', 'kisne banaya', 'kiski app', 'kisne develop kiya', 'who developed',
+        'developer kaun', 'kiske dwara', 'kisne create kiya', 'किसने बनाया', 'किसकी ऐप', 'डेवलपर कौन'
+      ];
       if (creator_kw.some(k => clean.includes(k))) return 'creator';
 
-      // 1. Live Data Audit / Mistake Check
-      const audit_kw = ['check karo', 'kuch galat', 'galti batao', 'kahan galti', 'audit', 'kya sahi hai', 'sahi bhara', 'chhoot gaya', 'kami hai', 'check data', 'गलती चेक', 'डेटा चेक', 'कुछ गलत', 'जांच करो', 'कमी बताओ', 'सही भरा', 'data check', 'check my data', 'kuch galti'];
+      // 6. Live Data Audit / Mistake Check
+      const audit_kw = [
+        'check karo', 'kuch galat', 'galti batao', 'kahan galti', 'audit', 'kya sahi hai', 'sahi bhara',
+        'chhoot gaya', 'kami hai', 'check data', 'गलती चेक', 'डेटा चेक', 'कुछ गलत', 'जांच करो',
+        'कमी बताओ', 'सही भरा', 'data check', 'check my data', 'kuch galti'
+      ];
       if (audit_kw.some(k => clean.includes(k))) return 'audit';
 
-      // 2. App Glitch / Freeze / Crash / Unexpected issue
-      const glitch_kw = ['hang', 'freeze', 'frozen', 'crash', 'blank', 'ruk gaya', 'ruka hua', 'chal nahi raha', 'nahi chal raha', 'nahi chal rha', 'chalta nahi', 'atak', 'atak gaya', 'safed screen', 'black screen', 'button kaam nahi', 'click nahi ho', 'error', 'gadbad ho gayi', 'khul nahi raha', 'khul nahi rha', 'gayab', 'हैंग', 'अटक', 'चल नहीं रहा', 'रुक गया', 'खुल नहीं रहा'];
+      // 7. App Glitch / Freeze / Crash / Unexpected issue
+      const glitch_kw = [
+        'hang', 'freeze', 'frozen', 'crash', 'blank', 'ruk gaya', 'ruka hua', 'chal nahi raha',
+        'nahi chal raha', 'nahi chal rha', 'chalta nahi', 'atak', 'atak gaya', 'safed screen',
+        'black screen', 'button kaam nahi', 'click nahi ho', 'error', 'gadbad ho gayi', 'khul nahi raha',
+        'khul nahi rha', 'gayab', 'हैंग', 'अटक', 'चल नहीं रहा', 'रुक गया', 'खुल नहीं रहा'
+      ];
       if (glitch_kw.some(k => clean.includes(k))) return 'glitch';
 
-      // 3. Out of Scope / General Knowledge / External World
-      const out_of_scope_kw = ['cricket', 'match', 'ipl', 'weather', 'mausam', 'barish', 'modi', 'rahul', 'news', 'cinema', 'movie', 'film', 'gaana', 'song', 'capital of', 'prime minister', 'recipe', 'khana banana', 'मौसम', 'बारिश', 'क्रिकेट', 'समाचार', 'गाना', 'फिल्म'];
+      // 8. General Greetings (Hello, Hi, Namaste)
+      const greet_kw = [
+        'hello', 'hi', 'hey', 'namaste', 'namaskar', 'pranam', 'ram ram', 'नमस्ते', 'नमस्कार', 'प्रणाम'
+      ];
+      if (greet_kw.some(k => clean === k || clean.startsWith(k + ' ') || clean.endsWith(' ' + k))) return 'greeting';
+
+      // 9. Out of Scope / External General Knowledge
+      const out_of_scope_kw = [
+        'cricket', 'match', 'ipl', 'weather', 'mausam', 'barish', 'modi', 'rahul', 'news', 'cinema',
+        'movie', 'film', 'gaana', 'song', 'capital of', 'prime minister', 'recipe', 'khana banana',
+        'मौसम', 'बारिश', 'क्रिकेट', 'समाचार', 'गाना', 'फिल्म'
+      ];
       if (out_of_scope_kw.some(k => clean.includes(k))) return 'out_of_scope';
 
-      // 4. Gratitude / Compliment
-      const thanks_kw = ['dhanyawad', 'shukriya', 'thanks', 'thank you', 'badhiya', 'shabash', 'great', 'super', 'mst', 'mast', 'achha hai', 'accha hai', 'धन्यवाद', 'शुक्रिया', 'बढ़िया', 'शाबाश', 'अच्छा है'];
+      // 10. Gratitude / Compliment
+      const thanks_kw = [
+        'dhanyawad', 'shukriya', 'thanks', 'thank you', 'badhiya', 'shabash', 'great', 'super',
+        'mst', 'mast', 'achha hai', 'accha hai', 'धन्यवाद', 'शुक्रिया', 'बढ़िया', 'शाबाश', 'अच्छा है'
+      ];
       if (thanks_kw.some(k => clean.includes(k))) return 'thanks';
 
-      // 5. Personal Chitchat / Informal
-      const chitchat_kw = ['kaise ho', 'kya kar rahe', 'khana khaya', 'kaha rehte', 'kahan rehte', 'hal chal', 'theek ho', 'how are you', 'how r u', 'how do you do', 'are you fine', 'sab theek', 'कैसा है', 'कैसे हो'];
+      // 11. Personal Chitchat / Informal
+      const chitchat_kw = [
+        'kaise ho', 'kya kar rahe', 'khana khaya', 'kaha rehte', 'kahan rehte', 'hal chal',
+        'theek ho', 'how are you', 'how r u', 'how do you do', 'are you fine', 'sab theek',
+        'कैसा है', 'कैसे हो'
+      ];
       if (chitchat_kw.some(k => clean.includes(k))) return 'chitchat';
 
       return null;
@@ -22038,6 +22352,10 @@ window.toggleOfflineAiChat = function() {
       if (!text) return;
       inp.value = '';
 
+      // 1. Detect and persist Sir vs Ma'am immediately from user query
+      updateSalutationFromText(text);
+      const sal = getSalutation();
+
       // Universal 5-turn history recording
       aiContext.history = aiContext.history || [];
       aiContext.history.unshift({ q: text, time: Date.now() });
@@ -22052,7 +22370,7 @@ window.toggleOfflineAiChat = function() {
         const typingRow = document.createElement('div');
         typingRow.id = typingId;
         typingRow.className = 'ai-msg-row bot';
-        typingRow.innerHTML = '<div style="font-size:16px;">🤖</div><div class="ai-msg-bubble" style="background:#1e293b; color:#38bdf8; font-size:11.5px; padding:6px 12px; border:1px solid #334155;">उत्तर टाइप हो रहा है...</div>';
+        typingRow.innerHTML = '<div style="font-size:16px;">💡</div><div class="ai-msg-bubble" style="background:#1e293b; color:#38bdf8; font-size:11.5px; padding:6px 12px; border:1px solid #334155;">Typing...</div>';
         box.appendChild(typingRow);
         box.scrollTop = box.scrollHeight;
       }
@@ -22061,124 +22379,81 @@ window.toggleOfflineAiChat = function() {
         const oldTyping = document.getElementById(typingId);
         if (oldTyping) oldTyping.remove();
 
-        const lang = detectLang(text);
-        const special = detectSpecialIntent(text);
-
+        const currentSal = getSalutation();
         let reply = '';
 
-        if (special === 'creator') {
-          if (lang === 'hi') {
-            reply = "🙏 <b>पूछने के लिए धन्यवाद सर / मैडम! 😊</b><br>इस डिजिटल सहायक को शिक्षक साथियों के दस्तावेज़ीकरण कार्य को आसान बनाने हेतु <b>मीना जी</b> द्वारा सेवा-भाव से तैयार किया गया है। यह 100% मुफ़्त और सुरक्षित है।";
-          } else if (lang === 'hinglish') {
-            reply = "🙏 <b>Thank you for asking, Sir / Ma'am! 😊</b><br>Is digital assistant ko documentation aur portfolio work ko aasan banane ke liye <b>Meena Ji</b> dwara develop kiya gaya hai. Yeh 100% free aur secure hai.";
-          } else {
-            reply = "🙏 <b>Thank you for asking, Sir / Ma'am! 😊</b><br>This digital assistant was developed by <b>Meena Ji</b> to simplify portfolio documentation and registers for educators. It is 100% free, offline, and secure.";
+        // Step 1: Math & Calculations Solver (Attendance %, Marks/Grades, Working Days, Arithmetic)
+        const mathReply = solveTeacherMath(text);
+        if (mathReply) {
+          reply = mathReply;
+        }
+
+        // Step 2: Galti / Error Correction Guide
+        if (!reply) {
+          const mistakeReply = handleMistakeOrError(text);
+          if (mistakeReply) reply = mistakeReply;
+        }
+
+        // Step 3: Human-like Complaint & Feedback Registration
+        if (!reply) {
+          const complaintReply = handleComplaintAndFeedback(text);
+          if (complaintReply) reply = complaintReply;
+        }
+
+        // Step 4: Special Intents (Greetings, Contact Shield, Legal, Creator, Glitch, Thanks, Chitchat)
+        if (!reply) {
+          const special = detectSpecialIntent(text);
+          if (special === 'user_sorry') {
+            reply = `😊 <b>Arey bilkul nahi ${currentSal}, please sorry mat kahiye!</b> Yeh to mera farz hai. Batayein main aapki kis prakar madad karoon?`;
+          } else if (special === 'courtesy_welcome') {
+            reply = `😊 <b>Thank you so much ${currentSal}! 🙏</b> Aapke sath kaam karke hamesha behad accha lagta hai. Have a wonderful day!`;
+          } else if (special === 'greeting_morning') {
+            reply = `🌅 <b>Good morning ${currentSal}! Welcome, how may I help you? 🙏</b> Batayein, aaj kis form, calculation ya sheet me help chahiye?`;
+          } else if (special === 'greeting_afternoon') {
+            reply = `☀️ <b>Good afternoon ${currentSal}! Welcome, how may I help you? 🙏</b> Batayein, aaj kis sheet, calculation ya record me help karoon?`;
+          } else if (special === 'greeting_evening') {
+            reply = `🌆 <b>Good evening ${currentSal}! Welcome, how may I help you? 🙏</b> Batayein, aaj kis record ya calculation me help chahiye?`;
+          } else if (special === 'greeting_night') {
+            reply = `🌙 <b>Good night ${currentSal}! 🙏</b> Kaam khatam karne se pehle top bar par <b>[🛡️ Backup]</b> zaroor le lein.`;
+          } else if (special === 'greeting') {
+            reply = `🙏 <b>Welcome ${currentSal}! How may I help you?</b> Portfolio, attendance, calculations ya FLN me main aapki kis prakar sahayta kar sakta hoon?`;
+          } else if (special === 'contact') {
+            reply = `📞 <b>Support Policy:</b> Yeh automated offline system hai ${currentSal}, koi personal phone number uplabdh nahi hai. Help ya issue ke liye kripya Settings me jakar <b>[📝 सुझाव व शिकायत]</b> submit karein.`;
+          } else if (special === 'legal_inquiry') {
+            reply = `🏛️ <b>System Clarification:</b> Yeh 100% free offline educational tool hai ${currentSal}. Koi bhi data external server par nahi jata, sab aapke phone me safe hai.`;
+          } else if (special === 'creator') {
+            reply = `🙏 Yeh tool MCD Teacher Community dwara teachers ki help ke liye banaya gaya hai ${currentSal}. 100% free aur secure hai.`;
+          } else if (special === 'audit') {
+            reply = diagnoseUserData('hinglish');
+          } else if (special === 'glitch') {
+            reply = `😟 <b>Fikar na karein ${currentSal}!</b> Top bar par <b>[🛡️ Backup]</b> lein aur page reload karein — sab theek ho jayega.`;
+          } else if (special === 'out_of_scope') {
+            reply = `🙂 <b>Hello ${currentSal}!</b> Main sirf portfolio, calculations, attendance aur FLN me help kar sakta hoon. Batayein isme kya help karoon?`;
+          } else if (special === 'thanks') {
+            reply = `😊 <b>Most welcome ${currentSal}! It's my absolute pleasure! 🙏</b> Aapki sahayata karke mujhe behad khushi hui. Koi aur calculation ya help chahiye to zaroor batayein.`;
+          } else if (special === 'chitchat') {
+            reply = `😊 <b>Sab theek hai ${currentSal}! 🙏</b> Aap batayein aaj kis register ya form par work karna hai?`;
           }
-        } else if (special === 'audit') {
-          reply = diagnoseUserData(lang);
-        } else if (special === 'glitch') {
-          if (lang === 'hi') {
-            reply = "😟 <b>आपकी परेशानी मैं समझ सकता हूँ सर / मैडम!</b> पर बिल्कुल चिंता न करें 🛡️:<br>1. ऊपर <b>[🛡️ बैकअप]</b> क्लिक करके सुरक्षित कर लें।<br>2. पेज को एक बार रीलोड (Refresh) करें — सभी फॉर्म्स तुरंत ठीक हो जाएंगे।";
-          } else if (lang === 'hinglish') {
-            reply = "😟 <b>I completely understand your concern, Sir / Ma'am!</b> Par bilkul fikar na karein 🛡️:<br>1. Top bar par <b>[🛡️ बैकअप]</b> click karke safe karein.<br>2. Page ko ek baar reload (refresh) karein — sabhi forms instantly recover ho jayenge.";
-          } else {
-            reply = "😟 <b>I truly understand your concern, Sir / Ma'am!</b> But please rest assured 🛡️:<br>1. Tap <b>[🛡️ Backup]</b> in the top bar.<br>2. Simply refresh (reload) the page — all views will recover instantly.";
+        }
+
+        // Step 5: Student Roll / Name Lookup
+        if (!reply) {
+          const studentInfo = resolveStudentQuery(text, 'hinglish');
+          if (studentInfo) reply = studentInfo;
+        }
+
+        // Step 6: Knowledge Base topic matching
+        if (!reply) {
+          const topic = matchTopic(text);
+          if (topic && AI_KB[topic]) {
+            let topicText = AI_KB[topic]['hinglish'] || AI_KB[topic]['en'] || AI_KB[topic]['hi'];
+            reply = topicText.replace(/Sir\s*\/\s*Ma'am/g, currentSal);
           }
-        } else if (special === 'out_of_scope') {
-          if (lang === 'hi') {
-            reply = "🙂 <b>नमस्ते सर / मैडम!</b><br>मैं विशेष रूप से आपकी कक्षा के 12 प्रपत्रों, हाजिरी और FLN कार्यों में मदद के लिए हूँ 🙏 बताएं, पोर्टफोलियो में आपकी क्या सहायता करूँ?";
-          } else if (lang === 'hinglish') {
-            reply = "🙂 <b>Hello Sir / Ma'am!</b><br>Main specially aapke class portfolios, attendance aur FLN records me help ke liye ready hoon 🙏 Batayein kis form me sahayata karoon?";
-          } else {
-            reply = "🙂 <b>Welcome Sir / Ma'am!</b><br>I specialize in classroom records, portfolio sheets, and attendance registers 🙏 How may I assist your classroom today?";
-          }
-        } else if (special === 'thanks') {
-          if (lang === 'hi') {
-            reply = "😊 <b>आपका बहुत-बहुत आभार सर / मैडम! 🙏</b><br>आपके शिक्षण कार्य में सहायता कर पाना मेरे लिए अत्यंत प्रसन्नता की बात है 😄 कोई और काम हो तो अवश्य बताएं!";
-          } else if (lang === 'hinglish') {
-            reply = "😊 <b>You are most welcome, Sir / Ma'am! 🙏</b><br>Aapke class records me help kar pana mere liye true pleasure hai 😄 Any other help needed?";
-          } else {
-            reply = "😊 <b>You are most welcome, Sir / Ma'am! 🙏</b><br>It is a genuine privilege assisting you with your class records 😄 Please let me know if you need anything else!";
-          }
-        } else if (special === 'chitchat') {
-          if (lang === 'hi') {
-            reply = "😊 <b>मैं बहुत अच्छा हूँ सर / मैडम! 🙏</b><br>बताएं, आज किस फॉर्म या रजिस्टर पर काम करना है?";
-          } else if (lang === 'hinglish') {
-            reply = "😊 <b>Doing wonderful, Sir / Ma'am! 🙏</b><br>Batayein aaj kis form ya register par work karna hai?";
-          } else {
-            reply = "😊 <b>Doing wonderful, Sir / Ma'am! 🙏</b><br>Which sheet or register are we working on today?";
-          }
-        } else {
-          // 1. Check Student Roll Entity Lookup (e.g. "Roll 5 ka father name")
-          const studentInfo = resolveStudentQuery(text, lang);
-          if (studentInfo) {
-            reply = studentInfo;
-          } else {
-            // 2. Check Compound Query (e.g. up to 3 topics in one sentence)
-            const compoundParts = splitCompoundQuery(text);
-            if (compoundParts && compoundParts.length >= 2) {
-              const matchedTopics = [];
-              compoundParts.forEach(part => {
-                const t = matchTopic(part);
-                if (t && AI_KB[t] && !matchedTopics.includes(t)) {
-                  matchedTopics.push(t);
-                }
-              });
+        }
 
-              if (matchedTopics.length >= 2) {
-                const numerals = ['1️⃣', '2️⃣', '3️⃣'];
-                const partsText = matchedTopics.map((t, idx) => {
-                  const rep = AI_KB[t][lang] || AI_KB[t]['hinglish'] || AI_KB[t]['en'];
-                  return `<b>${numerals[idx]} विषय:</b><br>${rep}`;
-                }).join('<br><br>');
-
-                if (lang === 'hi') {
-                  reply = `🙏 <b>आपके सभी प्रश्नों के उत्तर:</b><br><br>${partsText}`;
-                } else if (lang === 'hinglish') {
-                  reply = `🙏 <b>Aapke sabhi sawalon ke jawab:</b><br><br>${partsText}`;
-                } else {
-                  reply = `🙏 <b>Here are responses for your queries:</b><br><br>${partsText}`;
-                }
-              }
-            }
-
-            if (!reply) {
-              // 3. Domain Knowledge Base lookup
-              let topic = matchTopic(text);
-
-              const followUp = isTroubleFollowUp(text);
-              if (!topic && followUp && aiContext.lastTopic) {
-                topic = aiContext.lastTopic;
-              }
-
-              let isStep2 = false;
-              if (topic && topic === aiContext.lastTopic) {
-                aiContext.turn++;
-                isStep2 = true;
-              } else if (topic) {
-                aiContext.lastTopic = topic;
-                aiContext.turn = 1;
-              }
-
-              // Update rolling 5-turn history
-              aiContext.history = aiContext.history || [];
-              aiContext.history.unshift({ q: text, topic: topic, time: Date.now() });
-              if (aiContext.history.length > 5) aiContext.history.pop();
-
-              if (topic && AI_KB[topic]) {
-                const stepKey = (isStep2 && AI_KB[topic][lang + '_step2']) ? (lang + '_step2') : lang;
-                reply = AI_KB[topic][stepKey] || AI_KB[topic][lang] || AI_KB[topic]['hi'];
-              } else {
-                if (lang === 'hi') {
-                  reply = "🤔 <b>सीधे शब्दों में लिखें:</b><br>क्या आप इनमें से किसी पर मदद चाहते हैं?<br>• <b>[छात्र जोड़ना]</b> • <b>[12 प्रपत्र]</b> • <b>[हाजिरी फॉर्मूला]</b> • <b>[डेटा सुरक्षा व बैकअप]</b>";
-                } else if (lang === 'hinglish') {
-                  reply = "🤔 <b>Direct words me likhein:</b><br>Kya aap inme se help chahte hain?<br>• <b>[Student Add]</b> • <b>[12 Sheets]</b> • <b>[Attendance Formula]</b> • <b>[Backup & Security]</b>";
-                } else {
-                  reply = "🤔 <b>Please state directly:</b><br>Do you need help with:<br>• <b>[Adding Students]</b> • <b>[12 Sheets]</b> • <b>[Attendance Formulas]</b> • <b>[Data Security]</b>";
-                }
-              }
-            }
-          }
+        // Step 7: Fallback guidance
+        if (!reply) {
+          reply = `🤔 <b>${currentSal}, main portfolio calculations, attendance aur FLN me help kar sakta hoon.</b> Kripya seedhe shabdo me puchein:<br>• <b>[Attendance %]</b> • <b>[Grade Calculator]</b> • <b>[Add Student]</b> • <b>[Backup]</b>`;
         }
 
         // 🟢 Live Human-Like Typewriter Streaming Effect!
@@ -22188,7 +22463,7 @@ window.toggleOfflineAiChat = function() {
           row.className = 'ai-msg-row bot';
           const avatar = document.createElement('div');
           avatar.style.fontSize = '16px';
-          avatar.textContent = '🤖';
+          avatar.textContent = '💡';
           const bubble = document.createElement('div');
           bubble.className = 'ai-msg-bubble';
           row.appendChild(avatar);
@@ -22222,7 +22497,7 @@ window.toggleOfflineAiChat = function() {
           if (box) {
             const row = document.createElement('div');
             row.className = 'ai-msg-row bot';
-            row.innerHTML = '<div style="font-size:16px;">🤖</div><div class="ai-msg-bubble">' + replyText + '</div>';
+            row.innerHTML = '<div style="font-size:16px;">💡</div><div class="ai-msg-bubble">' + replyText + '</div>';
             box.appendChild(row);
             box.scrollTop = box.scrollHeight;
           }
@@ -22250,7 +22525,7 @@ window.toggleOfflineAiChat = function() {
       } else {
         const avatar = document.createElement('div');
         avatar.style.fontSize = '16px';
-        avatar.textContent = '🤖';
+        avatar.textContent = '💡';
         bubble.innerHTML = content;
         row.appendChild(avatar);
         row.appendChild(bubble);
