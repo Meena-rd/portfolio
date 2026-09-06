@@ -15583,7 +15583,7 @@ function setAppLanguage(lang) {
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     initDynamicTables();
-    try { initGoogleIdentityServices(); 
+    try { initGoogleIdentityServices(); } catch(e){}
     // ===== Language toggle init =====
     try {
       var savedLang = localStorage.getItem('mcd_app_lang');
