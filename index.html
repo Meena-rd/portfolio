@@ -2551,18 +2551,9 @@
           <button type="button" class="tab-btn" data-tab="attendance" onclick="switchTab('attendance')"><span data-lk="📅 4. छात्र उपस्थिति पंजिका (Attendance Register)">📅 4. छात्र उपस्थिति पंजिका (Attendance Register)</span></button>
           <button type="button" class="tab-btn" data-tab="peer_groups" onclick="switchTab('peer_groups')"><span data-lk="🤝 5. सहपाठी समूह (Peer Groups)">🤝 5. सहपाठी समूह (Peer Groups)</span></button>
         </div>
-        <div class="class-action-bar no-print" style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
-          <button type="button" class="action-btn" onclick="exportCurrentClassTabToExcel()" style="background:#059669; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="वर्तमान खुले रजिस्टर को Excel (.csv) में डाउनलोड करें">
-            📊 Excel डाउनलोड
-          </button>
-          <button type="button" class="action-btn" onclick="copyCurrentClassTabForExcel()" style="background:#0284c7; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="वर्तमान रजिस्टर का सारा डेटा Excel हेतु कॉपी करें (Ctrl+V)">
-            📋 Excel कॉपी
-          </button>
-          <button type="button" class="action-btn" onclick="openShareModal()" style="background:#16a34a; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="कक्षा के सभी आधिकारिक रजिस्टर व रिपोर्ट्स शेयर करें">
-            📤 शेयर पोर्टल
-          </button>
-          <button type="button" class="action-btn" onclick="window.print()" style="background:#1e293b; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="वर्तमान रजिस्टर का A4 प्रिंट करें">
-            🖨️ प्रिंट
+        <div class="class-action-bar no-print" style="display:flex; align-items:center; gap:6px;">
+          <button type="button" class="action-btn" onclick="openShareModal()" style="background:#16a34a; color:#ffffff; font-weight:800; padding:4px 10px; font-size:11.5px; border-radius:5px;" title="कक्षा के सभी आधिकारिक रजिस्टर व रिपोर्ट्स शेयर करें">
+            📤 शेयर
           </button>
         </div>
       </div>
@@ -4157,15 +4148,6 @@
                 <span style="font-size:12px; font-weight:800; color:#334155;">📅 उपस्थिति तारीख:</span>
                 <input type="date" id="peerAttendanceDateInput" value="${selectedPeerAttendanceDate}" onchange="changePeerAttendanceDate(this.value)" style="border:none; font-size:12.5px; font-weight:800; color:#0f172a; outline:none; background:transparent; cursor:pointer;">
               </div>
-              <button type="button" class="action-btn" style="background:#0284c7; color:#ffffff; padding:7px 12px; font-size:12px; font-weight:800;" onclick="copyPeerGroupsForExcel()" title="सभी सहपाठी समूहों की सूची Excel हेतु कॉपी करें (Ctrl+V)">
-                📋 Excel कॉपी
-              </button>
-              <button type="button" class="action-btn" style="background:#059669; color:#ffffff; padding:7px 12px; font-size:12px; font-weight:800;" onclick="exportPeerGroupsToExcel()" title="सभी सहपाठी समूहों को Excel (.csv) में डाउनलोड करें">
-                📥 Excel डाउनलोड
-              </button>
-              <button type="button" class="action-btn" style="background:#16a34a; color:#ffffff; padding:7px 12px; font-size:12px; font-weight:800;" onclick="openShareModal()" title="सहपाठी समूह व कक्षा रिपोर्ट्स शेयर करें">
-                📤 शेयर
-              </button>
               <button type="button" class="dash-primary-cta" id="peerPrimaryCreateBtn" onclick="openPeerFullClassSetupModal()" style="background:#15803d; color:#ffffff;">
                 ➕ कक्षा समूह सेटअप (Setup All Groups)
               </button>
@@ -4304,9 +4286,6 @@
             </button>
             <button class="action-btn" style="background:#059669; padding:5px 10px; font-size:11.5px;" onclick="exportResultToExcel()" title="इस परिणाम तालिका को Excel (.csv) में डाउनलोड करें">
               📥 Excel एक्सपोर्ट
-            </button>
-            <button type="button" class="action-btn" style="background:#16a34a; color:#ffffff; padding:5px 10px; font-size:11.5px; font-weight:800;" onclick="openShareModal()" title="परीक्षा परिणाम व रिपोर्ट्स शेयर करें">
-              📤 शेयर
             </button>
             <button class="action-btn btn-print" style="padding:5px 10px; font-size:11.5px;" onclick="window.print()" title="रिजल्ट शीट को A4 लैंडस्केप में प्रिंट करें">
               🖨️ प्रिंट
