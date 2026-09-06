@@ -15507,26 +15507,145 @@ function handleDashboardPrimaryCta() {
   showToast('📊 FLN असेसमेंट की ओर जा रहे हैं...', 'info');
 }
 
-// saveActivePageAsImage — JPEG export
-function saveActivePageAsImage() {
-  const sheet = document.querySelector('.sheet.active-sheet') || document.querySelector('[data-page-active]') || document.querySelector('.sheet');
-  if (!sheet) { showAlert('⚠️ कोई सक्रिय पृष्ठ नहीं मिला।'); return; }
-  if (typeof html2canvas !== 'undefined') {
-    showToast('📸 Image बना रहे हैं...', 'info');
-    html2canvas(sheet, { 
-      scale: 2, 
-      useCORS: true,
-      ignoreElements: function(el) { return el.classList && el.classList.contains('no-print'); }
-    }).then(function(canvas) {
-      var a = document.createElement('a');
-      a.download = 'Portfolio_' + Date.now() + '.jpg';
-      a.href = canvas.toDataURL('image/jpeg', 0.92);
-      a.click();
-      showToast('✅ Image सेव हो गई!', 'success');
-    }).catch(function(e) { showAlert('Image बनाने में समस्या: ' + (e.message || e)); });
-  } else {
-    showAlert('📸 Image Save:\n\nWindows: Win + Shift + S\nFull: PrtSc\nPrint (Ctrl+P) → Save as PDF');
+// Helper to find the EXACT active & visible sheet to capture
+function getActiveSheetElement() {
+  // 1. Find the active tab pane
+  const activePane = document.querySelector('.tab-pane.active') || 
+                     document.getElementById('tab_' + (DB.activeTab || 'cover'));
+
+  if (activePane) {
+    // 1a. If inside Class Board, find the active CB page pane
+    if (activePane.id === 'tab_cb') {
+      const activeCbPane = activePane.querySelector('.cb-page-pane.active') || 
+                           Array.from(activePane.querySelectorAll('.cb-page-pane')).find(p => p.offsetParent !== null || p.style.display === 'block');
+      if (activeCbPane) {
+        const cbSheet = activeCbPane.querySelector('.sheet');
+        if (cbSheet) return cbSheet;
+      }
+    }
+
+    // 1b. If Peer Groups / ID cards
+    if (activePane.id === 'tab_peer_groups') {
+      const pgArea = activePane.querySelector('#peerGroupsPrintArea') || activePane.querySelector('.sheet');
+      if (pgArea) return pgArea;
+    }
+
+    // 1c. Find all visible sheets inside activePane
+    const sheets = Array.from(activePane.querySelectorAll('.sheet'));
+    const visibleSheets = sheets.filter(s => s.offsetParent !== null || window.getComputedStyle(s).display !== 'none');
+    if (visibleSheets.length === 1) return visibleSheets[0];
+    if (visibleSheets.length > 1) {
+      // Find sheet most visible in viewport
+      const windowH = window.innerHeight || 800;
+      let bestSheet = visibleSheets[0];
+      let maxVisH = -1;
+      visibleSheets.forEach(s => {
+        const r = s.getBoundingClientRect();
+        const visH = Math.max(0, Math.min(r.bottom, windowH) - Math.max(r.top, 0));
+        if (visH > maxVisH) {
+          maxVisH = visH;
+          bestSheet = s;
+        }
+      });
+      return bestSheet;
+    }
+    if (sheets.length > 0) return sheets[0];
+
+    const paneSheet = activePane.querySelector('.sheet');
+    if (paneSheet) return paneSheet;
   }
+
+  // 2. Fallback: find ANY visible sheet in document
+  const allSheets = Array.from(document.querySelectorAll('.sheet'));
+  const visibleAny = allSheets.find(s => s.offsetParent !== null || window.getComputedStyle(s).display !== 'none');
+  if (visibleAny) return visibleAny;
+
+  return allSheets[0] || null;
+}
+
+// saveActivePageAsImage — Robust JPEG export with binary Blob & smart filename
+function saveActivePageAsImage() {
+  const sheet = getActiveSheetElement();
+  if (!sheet) { 
+    showAlert('⚠️ कोई सक्रिय पृष्ठ नहीं मिला।'); 
+    return; 
+  }
+
+  if (typeof html2canvas === 'undefined') {
+    showAlert('📸 Image Save:\n\nWindows: Win + Shift + S\nFull: PrtSc\nPrint (Ctrl+P) → Save as PDF');
+    return;
+  }
+
+  showToast('📸 JPEG Image बना रहे हैं...', 'info');
+
+  // Prepare professional filename
+  const st = (typeof getActiveStudent === 'function') ? getActiveStudent() : (DB.students && DB.students[0]);
+  const sName = (st && st.studentName) ? st.studentName.trim().replace(/[^a-zA-Z0-9\u0900-\u097F_-]/g, '_') : 'Student';
+  const rNo = (st && st.rollNo) ? st.rollNo : '1';
+  const activeTab = DB.activeTab || 'cover';
+  const docNames = {
+    cover: 'Portfolio_Cover',
+    f1: 'Annexure_F1',
+    f2: 'Annexure_F2',
+    cs: 'Case_Study',
+    ss: 'Success_Story',
+    cb: 'Class_Board',
+    peer_groups: 'Peer_Groups'
+  };
+  const docPrefix = docNames[activeTab] || 'Portfolio_Page';
+  const fileName = `${docPrefix}_Roll${rNo}_${Date.now()}.jpg`;
+
+  html2canvas(sheet, {
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    ignoreElements: function(el) {
+      return el.classList && (
+        el.classList.contains('no-print') || 
+        el.classList.contains('photo-actions') || 
+        el.classList.contains('photo-camera-icon') || 
+        el.classList.contains('del-photo-btn')
+      );
+    }
+  }).then(function(canvas) {
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      showAlert('⚠️ Image कैप्चर नहीं हो सकी (साइज 0 है)। कृपया पेज रीफ्रेश करके पुनः प्रयास करें।');
+      return;
+    }
+
+    if (canvas.toBlob) {
+      canvas.toBlob(function(blob) {
+        if (!blob || blob.size === 0) {
+          triggerDataUrlDownload(canvas, fileName);
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = fileName;
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+        showToast('✅ ' + fileName + ' डाउनलोड हो गई!', 'success');
+      }, 'image/jpeg', 0.95);
+    } else {
+      triggerDataUrlDownload(canvas, fileName);
+    }
+  }).catch(function(e) {
+    showAlert('Image बनाने में समस्या: ' + (e.message || e));
+  });
+}
+
+function triggerDataUrlDownload(canvas, fileName) {
+  const a = document.createElement('a');
+  a.download = fileName;
+  a.href = canvas.toDataURL('image/jpeg', 0.95);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('✅ ' + fileName + ' डाउनलोड हो गई!', 'success');
 }
 
 // manualSaveNow — manual save from header
