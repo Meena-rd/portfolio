@@ -14318,6 +14318,29 @@ window.addEventListener('load', function() { setTimeout(checkStorageHealth, 6000
 
 // ===== 🌐 LANGUAGE ENGINE (Default: Hinglish | Option: English) =====
 
+
+// ===== ADDITIONAL INIT FUNCTIONS RESTORED =====
+
+function initGoogleIdentityServices() {
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+    console.log('Google Identity Services SDK initializing...');
+    return false;
+  }
+  try {
+    GOOGLE_AUTH_STATE.tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_AUTH_STATE.clientId,
+      scope: GOOGLE_AUTH_STATE.scope,
+      callback: handleGoogleAuthResponse
+    });
+    console.log('✓ Google Identity Token Client initialized successfully.');
+    return true;
+  } catch(err) {
+    console.warn('Google Identity Token Client init warning:', err);
+    return false;
+  }
+}
+// ===== END ADDITIONAL INIT FUNCTIONS =====
+
 // ===================================================================
 // 🔄 AUTO-FILL ENGINE — RESTORED FROM ORIGINAL 2SEP BACKUP
 // These functions power the complete auto-fill system:
@@ -15557,23 +15580,98 @@ function setAppLanguage(lang) {
 }
 
 // Apply on page load
-window.addEventListener('DOMContentLoaded', function() {
-  if (window.APP_LANG === 'en') {
-    setTimeout(function() { setAppLanguage('en'); }, 800);
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    initDynamicTables();
+    try { initGoogleIdentityServices(); 
+    // ===== Language toggle init =====
+    try {
+      var savedLang = localStorage.getItem('mcd_app_lang');
+      if (savedLang) window.APP_LANG = savedLang;
+      if (window.APP_LANG === 'en') {
+        setTimeout(function() {
+          if (typeof setAppLanguage === 'function') setAppLanguage('en');
+        }, 1000);
+      }
+      // Update toggle buttons visual state
+      setTimeout(function() {
+        var btnHi = document.getElementById('langBtnDefault');
+        var btnEn = document.getElementById('langBtnEn');
+        if (btnHi) btnHi.style.background = (window.APP_LANG !== 'en') ? '#1e40af' : '#e2e8f0';
+        if (btnHi) btnHi.style.color = (window.APP_LANG !== 'en') ? '#fff' : '#64748b';
+        if (btnEn) btnEn.style.background = (window.APP_LANG === 'en') ? '#1e40af' : '#e2e8f0';
+        if (btnEn) btnEn.style.color = (window.APP_LANG === 'en') ? '#fff' : '#64748b';
+      }, 800);
+    } catch(eLang) {}
+    // ===== End language toggle init =====
+
+  } catch(e){}
+    document.querySelectorAll('.fld').forEach(inp => inp.addEventListener('input', handleFieldInput));
+    
+    // 1. Initialize IndexedDB High-Capacity Storage Engine
+    await initIndexedDB();
+    let loadedData = await loadFromIndexedDB();
+    
+    // 2. Fallback to LocalStorage if IndexedDB is empty or not supported
+    if (!loadedData || !loadedData.students || loadedData.students.length === 0) {
+      try {
+        const localBackup = localStorage.getItem(PERMANENT_STORAGE_KEY) || localStorage.getItem('mcd_official_portfolio_backup_latest');
+        if (localBackup) {
+          const parsed = JSON.parse(localBackup);
+          if (parsed && (parsed.students || parsed.classSettings)) {
+            loadedData = parsed;
+            console.log('✓ Restored seamlessly from LocalStorage persistent backup engine!');
+          }
+        }
+      } catch(localErr) {
+        console.warn('LocalStorage fallback check:', localErr);
+      }
+    }
+
+    if (loadedData) {
+      DB = Object.assign(DB, loadedData);
+      console.log('✓ Database loaded successfully!');
+    }
+  } catch(err) {
+    console.error('Initialization error', err);
   }
-  // Sync toggle button visual state
-  setTimeout(function() {
-    const btnHi = document.getElementById('langBtnDefault');
-    const btnEn = document.getElementById('langBtnEn');
-    if (btnHi) {
-      btnHi.style.background = window.APP_LANG !== 'en' ? '#1e40af' : '#e2e8f0';
-      btnHi.style.color = window.APP_LANG !== 'en' ? '#fff' : '#374151';
-    }
-    if (btnEn) {
-      btnEn.style.background = window.APP_LANG === 'en' ? '#1e40af' : '#e2e8f0';
-      btnEn.style.color = window.APP_LANG === 'en' ? '#fff' : '#374151';
-    }
-  }, 900);
+  
+  // ============ MIGRATION: Move old slcStudents back into DB.students ============
+  if (DB.slcStudents && DB.slcStudents.length > 0) {
+    console.log('🔄 Migrating ' + DB.slcStudents.length + ' old SLC students back into main roster...');
+    DB.slcStudents.forEach(slcSt => {
+      slcSt.status = 'slc';
+      if (!slcSt.frozenRollNo) slcSt.frozenRollNo = slcSt.archivedRollNo || slcSt.rollNo || '0';
+      const targetIdx = parseInt(slcSt.frozenRollNo, 10) - 1;
+      if (targetIdx >= 0 && targetIdx <= DB.students.length) {
+        DB.students.splice(targetIdx, 0, slcSt);
+      } else {
+        DB.students.push(slcSt);
+      }
+    });
+    DB.slcStudents = [];
+    compactStudentsRoster();
+    recalcActiveRollNumbers();
+    saveDBDirect();
+    console.log('✓ Migration complete! SLC students are now frozen in-place.');
+  }
+  
+  // Ensure all students have a status field
+  if (DB.students) {
+    DB.students.forEach(s => {
+      if (s && !s.status) s.status = 'active';
+    });
+  }
+  
+  compactStudentsRoster();
+  recalcActiveRollNumbers();
+  
+  // Render views immediately with loaded data
+  syncAllFlnAssessmentData();
+  renderAllViews();
+  renderMasterRosterTable();
+  switchTab(DB.activeTab || 'master_roster');
+  updateStorageMeter();
 });
 // ===== END LANGUAGE ENGINE =====
 
