@@ -9169,6 +9169,13 @@ function setActiveStudentByIndex(idx) {
     DB.activeStudentId = DB.students[idx].id;
     updateStudentNavBanner();
     updatePhotoViews();
+    document.querySelectorAll('.fld').forEach(inp => {
+      const path = inp.getAttribute('data-path');
+      if (path && path.startsWith('student.')) {
+        const val = getByPath(DB, path);
+        inp.value = val || '';
+      }
+    });
   }
 }
 function handleMasterGridPaste(e, startRow, startCol) {
@@ -12790,12 +12797,31 @@ function syncAllFlnAssessmentData(targetDateIdx) {
       const dVal = (DB.flnSheetDates[rowIndex] && DB.flnSheetDates[rowIndex].defaultDate) || '';
 
       if (!std.f1.rows[rowIndex]) std.f1.rows[rowIndex] = {};
-      if (dVal) std.f1.rows[rowIndex].date = dVal;
-      if (vH) std.f1.rows[rowIndex].hindi = vH;
-      if (vM) std.f1.rows[rowIndex].maths = vM;
-      if (vE) std.f1.rows[rowIndex].english = vE;
+      std.f1.rows[rowIndex].date = dVal || '';
+      std.f1.rows[rowIndex].hindi = vH || '';
+      std.f1.rows[rowIndex].maths = vM || '';
+      std.f1.rows[rowIndex].english = vE || '';
     }
+    // Auto-sync FLN scores to Case Study (Baseline = Date 1, Endline = latest entered date)
+    if (!std.cs) std.cs = {};
+    if (!std.cs.fln) std.cs.fln = {};
+    std.cs.fln.hindiL1 = (DB.flnSheetScores[`s_${r}_d_1_h`] || '').trim();
+    std.cs.fln.mathsL1 = (DB.flnSheetScores[`s_${r}_d_1_m`] || '').trim();
+    std.cs.fln.englishL1 = (DB.flnSheetScores[`s_${r}_d_1_e`] || '').trim();
+
+    let latestH = '', latestM = '', latestE = '';
+    for (let d = 20; d >= 1; d--) {
+      if (!latestH && DB.flnSheetScores[`s_${r}_d_${d}_h`]) latestH = DB.flnSheetScores[`s_${r}_d_${d}_h`].trim();
+      if (!latestM && DB.flnSheetScores[`s_${r}_d_${d}_m`]) latestM = DB.flnSheetScores[`s_${r}_d_${d}_m`].trim();
+      if (!latestE && DB.flnSheetScores[`s_${r}_d_${d}_e`]) latestE = DB.flnSheetScores[`s_${r}_d_${d}_e`].trim();
+    }
+    std.cs.fln.hindiL2 = latestH;
+    std.cs.fln.mathsL2 = latestM;
+    std.cs.fln.englishL2 = latestE;
   }
+
+  // Also auto-sync Attendance to Case Study
+  try { if (typeof syncAttendanceToCaseStudy === 'function') syncAttendanceToCaseStudy(); } catch(e){}
 
   // 2. Sync to Annexure F2 (Class Summary Table) for all 20 Dates (100% Exactly from FLN Sheet Date Columns)
   for (let d = 1; d <= 20; d++) {
@@ -13052,47 +13078,29 @@ function autoSyncFlnToClassBoard(specifiedDateIdx) {
   const allStudents = DB.students || [];
   const activeStudentsList = allStudents.filter(s => s && s.studentName && s.studentName.trim() && s.status !== 'slc');
   const rosterCount = activeStudentsList.length;
-  const enrolledCount = Math.max(rosterCount, uniqueAssessedCount + uniqueAbsentCount);
+  // 1:1 match with FLN Assessment Sheet footer enrolled count
+  const enrolledCount = (uniqueAssessedCount > 0 || uniqueAbsentCount > 0)
+    ? (uniqueAssessedCount + uniqueAbsentCount)
+    : rosterCount;
 
   if (!DB.classSettings.cb) DB.classSettings.cb = {};
   
-  // 🏫 CLASS-AWARE CB SYNC: Only fill the correct board based on selected class
-  // Class 1-2 (Foundational) → CB-1 (p1) only
-  // Class 3-5 (Preparatory) → CB-2 (p2) only
-  const clsStr = (DB.classSettings.classOnly || DB.classSettings.classSec || '').trim().toLowerCase();
-  const isFoundational = clsStr.includes('1') || clsStr.includes('2') || clsStr === 'i' || clsStr === 'ii' || clsStr.startsWith('1') || clsStr.startsWith('2') || clsStr.includes('bal') || clsStr.includes('nur') || clsStr.includes('kg');
-  
-  // Determine which FLN page to fill and which to clear
-  const activeFlnPage = isFoundational ? 'p1' : 'p2';
-  const inactiveFlnPage = isFoundational ? 'p2' : 'p1';
+  // Fill both CB-1 and CB-2 cleanly with FLN data without wiping either
+  ['p1', 'p2'].forEach(pageKey => {
+    if (!DB.classSettings.cb[pageKey]) DB.classSettings.cb[pageKey] = { hindi: {}, maths: {}, english: {} };
+    const cbPage = DB.classSettings.cb[pageKey];
+    cbPage.totalStudents = enrolledCount > 0 ? String(enrolledCount) : '';
+    cbPage.absent = uniqueAbsentCount > 0 ? String(uniqueAbsentCount) : (enrolledCount > 0 ? '0' : '');
+    cbPage.assessed = uniqueAssessedCount > 0 ? String(uniqueAssessedCount) : (enrolledCount > 0 ? '0' : '');
+    cbPage.monthYear = monthYearStr;
 
-  // 3a. Fill the ACTIVE CB page with FLN data
-  if (!DB.classSettings.cb[activeFlnPage]) DB.classSettings.cb[activeFlnPage] = { hindi: {}, maths: {}, english: {} };
-  const cbActive = DB.classSettings.cb[activeFlnPage];
-  cbActive.totalStudents = enrolledCount > 0 ? String(enrolledCount) : '';
-  cbActive.absent = uniqueAbsentCount > 0 ? String(uniqueAbsentCount) : (enrolledCount > 0 ? '0' : '');
-  cbActive.assessed = uniqueAssessedCount > 0 ? String(uniqueAssessedCount) : (enrolledCount > 0 ? '0' : '');
-  cbActive.monthYear = monthYearStr;
-
-  ['hindi', 'maths', 'english'].forEach(sub => {
-    if (!cbActive[sub]) cbActive[sub] = {};
-    for (let l = 1; l <= 5; l++) {
-      cbActive[sub][l] = counts[sub][l] > 0 ? String(counts[sub][l]) : '';
-    }
-    cbActive[sub].total = counts[sub].total > 0 ? String(counts[sub].total) : '';
-  });
-
-  // 3b. Clear the INACTIVE CB page (wrong class → no data)
-  if (!DB.classSettings.cb[inactiveFlnPage]) DB.classSettings.cb[inactiveFlnPage] = { hindi: {}, maths: {}, english: {} };
-  const cbInactive = DB.classSettings.cb[inactiveFlnPage];
-  cbInactive.totalStudents = '';
-  cbInactive.absent = '';
-  cbInactive.assessed = '';
-  cbInactive.monthYear = '';
-  ['hindi', 'maths', 'english'].forEach(sub => {
-    if (!cbInactive[sub]) cbInactive[sub] = {};
-    for (let l = 1; l <= 5; l++) { cbInactive[sub][l] = ''; }
-    cbInactive[sub].total = '';
+    ['hindi', 'maths', 'english'].forEach(sub => {
+      if (!cbPage[sub]) cbPage[sub] = {};
+      for (let l = 1; l <= 5; l++) {
+        cbPage[sub][l] = counts[sub][l] > 0 ? String(counts[sub][l]) : '';
+      }
+      cbPage[sub].total = counts[sub].total > 0 ? String(counts[sub].total) : '';
+    });
   });
 
   // ⚠️ NOTE: CB-3 (p3) and CB-4 (p4) are EXAM RESULT based — NOT touched by FLN sync.
@@ -14493,7 +14501,8 @@ function renderAllViews() {
   try { if (typeof renderAttendanceRegister === 'function') renderAttendanceRegister(); } catch(e){}
   try { if (typeof renderResultTable === 'function') renderResultTable(); } catch(e){}
   try { if (typeof renderPeerGroupsWorkspace === 'function') renderPeerGroupsWorkspace(); } catch(e){}
-  try { if (typeof updateDashboardStats === 'function') updateDashboardStats(); } catch(e){}
+  try { if (typeof renderLiveCalmDashboard === 'function') renderLiveCalmDashboard(); } catch(e){}
+  window.updateDashboardStats = renderLiveCalmDashboard;
 }
 
 var debouncePushTimer = null;
@@ -14515,6 +14524,11 @@ function handleFieldInput(e) {
   document.querySelectorAll('[data-path="' + path + '"]').forEach(inp => {
     if (inp !== e.target) inp.value = val;
   });
+
+  // Live update class banner if classSettings were edited
+  if (path.startsWith('classSettings.')) {
+    try { if (typeof renderLiveCalmDashboard === 'function') renderLiveCalmDashboard(); } catch(e){}
+  }
 
   // 2. Cross-field alias syncing for student properties (Cover, F1, CS, SS)
   if (path.startsWith('student.')) {
@@ -15312,6 +15326,8 @@ function switchCBPage(pageId) {
   populateFlnDateSelectOptions();
 }
 
+var currentCBGradeTerm = { p3: 'mid', p4: 'mid' };
+
 function switchCBGradeTerm(pageKey, term) {
   // Save current page's data before switching
   _saveCBGradeCurrentFields(pageKey);
@@ -15353,24 +15369,17 @@ function updateCBContextualVisibility() {
     if (b3) b3.innerHTML = '⛰️ CB-3 (स्तर ग्रुप 1-2) ⭐';
     if (b2) b2.innerHTML = 'CB-2 (FLN कक्षा 3-5)';
     if (b4) b4.innerHTML = 'CB-4 (दक्षता 3-5)';
-    if (!DB.activeCBPage || DB.activeCBPage === 'cb_p2' || DB.activeCBPage === 'cb_p4') {
-      switchCBPage('cb_p1');
-      return;
-    }
   } else {
     if (b2) b2.innerHTML = '🏫 CB-2 (FLN कक्षा 3-5) ⭐';
     if (b4) b4.innerHTML = '🎯 CB-4 (दक्षता स्तर 3-5) ⭐';
     if (b1) b1.innerHTML = 'CB-1 (FLN कक्षा 1-2)';
     if (b3) b3.innerHTML = 'CB-3 (स्तर 1-2)';
-    if (!DB.activeCBPage || DB.activeCBPage === 'cb_p1' || DB.activeCBPage === 'cb_p3') {
-      switchCBPage('cb_p2');
-      return;
-    }
   }
 
   if (b5) b5.innerHTML = '📅 CB-5 (मासिक उपस्थिति व टॉप-5)';
-  if (DB.activeCBPage) switchCBPage(DB.activeCBPage);
-  else switchCBPage(isFoundational ? 'cb_p1' : 'cb_p2');
+  if (!DB.activeCBPage) {
+    switchCBPage(isFoundational ? 'cb_p1' : 'cb_p2');
+  }
 }
 
 function loadCBGradeData(pageKey, term) {
@@ -15737,65 +15746,120 @@ function syncAttendanceToCB5(monthKey = null) {
   DB.classSettings.cb.p5.monthYear = `${monthNameHi} ${info.year}`;
 
   const allStudents = DB.students || [];
-  const enrolledStudents = allStudents.filter(std => {
+  const activeStudents = allStudents.filter(std => {
     if (typeof isStudentEnrolledInMonth === 'function') return isStudentEnrolledInMonth(std, info.year, info.monthIdx);
-    return std && std.status !== 'slc';
+    return std && std.studentName && std.studentName.trim().length > 0 && std.status !== 'slc';
   });
-  DB.classSettings.cb.p5.enrolled = String(enrolledStudents.length);
+  DB.classSettings.cb.p5.enrolled = String(activeStudents.length);
 
   let workingDays = [];
   if (typeof calculateDailyAttendanceLedger === 'function') {
     const res = calculateDailyAttendanceLedger(mKey);
     workingDays = (res && res.ledger) ? res.ledger.filter(d => d.isWorking) : [];
   }
+  const totalWorkingSessions = workingDays.length * 2;
 
   const studentStats = [];
   let totalClassPresentSessions = 0;
   let totalClassPossibleSessions = 0;
   let longAbsentCount = 0;
 
-  allStudents.forEach((std, r) => {
-    if (!std || !std.studentName || !std.studentName.trim()) return;
+  activeStudents.forEach((std, r) => {
     let stPresentSessions = 0;
-    let stEligibleSessions = 0;
+    let maxConsecutiveAbsence = 0;
+    let curConsecutiveAbsence = 0;
 
     workingDays.forEach(wd => {
-      stEligibleSessions += 2;
-      totalClassPossibleSessions += 2;
-      const rawV1 = mAtt[`s_${r}_d_${wd.day}_1`];
-      const rawV2 = mAtt[`s_${r}_d_${wd.day}_2`];
-      const isP1 = (rawV1 === 'P' || rawV1 === '1');
-      const isP2 = (rawV2 === 'P' || rawV2 === '1');
-      if (isP1) { stPresentSessions++; totalClassPresentSessions++; }
-      if (isP2) { stPresentSessions++; totalClassPresentSessions++; }
+      const d = wd.day;
+      const rawV1 = mAtt[`s_${r}_d_${d}_1`];
+      const rawV2 = mAtt[`s_${r}_d_${d}_2`];
+      const legacyV = mAtt[`s_${r}_d_${d}`];
+
+      const v1 = (rawV1 !== undefined ? rawV1 : (legacyV || '')).toUpperCase().trim();
+      const v2 = (rawV2 !== undefined ? rawV2 : (legacyV || '')).toUpperCase().trim();
+
+      const isP1 = (v1 === 'P' || v1 === '1' || v1 === 'PRESENT');
+      const isP2 = (v2 === 'P' || v2 === '1' || v2 === 'PRESENT');
+
+      if (isP1) stPresentSessions++;
+      if (isP2) stPresentSessions++;
+
+      const isFullDayAbsent = (!isP1 && !isP2 && (v1 === 'A' || v2 === 'A' || v1 === '0' || v2 === '0'));
+      if (isFullDayAbsent) {
+        curConsecutiveAbsence++;
+        if (curConsecutiveAbsence > maxConsecutiveAbsence) maxConsecutiveAbsence = curConsecutiveAbsence;
+      } else if (isP1 || isP2) {
+        curConsecutiveAbsence = 0;
+      }
     });
 
-    if (stEligibleSessions > 0) {
-      const pct = (stPresentSessions / stEligibleSessions) * 100;
-      const isSlc = (std.status === 'slc');
-      const rNo = isSlc ? (std.frozenRollNo || std.rollNo || (r + 1)) : (std.rollNo || (r + 1));
-      studentStats.push({ rollNo: rNo, name: std.studentName, pct, isSlc });
+    if (maxConsecutiveAbsence >= 6 || (totalWorkingSessions > 0 && (stPresentSessions / totalWorkingSessions) < 0.5)) {
+      longAbsentCount++;
     }
+
+    const pct = totalWorkingSessions > 0 ? ((stPresentSessions / totalWorkingSessions) * 100) : 0;
+    const isSlc = (std.status === 'slc');
+    const rNo = isSlc ? (std.frozenRollNo || std.rollNo || (r + 1)) : (std.rollNo || (r + 1));
+    studentStats.push({
+      student: std,
+      rollNo: rNo,
+      name: std.studentName,
+      presentSessions: stPresentSessions,
+      totalSessions: totalWorkingSessions,
+      pct,
+      isSlc
+    });
+
+    totalClassPresentSessions += stPresentSessions;
+    totalClassPossibleSessions += totalWorkingSessions;
   });
 
   DB.classSettings.cb.p5.longAbsent = String(longAbsentCount);
   let avgPctStr = '0.0%';
   if (totalClassPossibleSessions > 0) {
-    avgPctStr = ((totalClassPresentSessions / totalClassPossibleSessions) * 100).toFixed(1) + '%';
+    const avgPct = (totalClassPresentSessions / totalClassPossibleSessions) * 100;
+    avgPctStr = avgPct.toFixed(1) + '%';
   }
   DB.classSettings.cb.p5.avgAttendance = avgPctStr;
 
+  // Max Attendance Day
+  let maxDayPresent = 0;
+  let maxDayDateStr = '';
+  workingDays.forEach(wd => {
+    let dayPresentSum = 0;
+    activeStudents.forEach((std, r) => {
+      const v1 = (mAtt[`s_${r}_d_${wd.day}_1`] || mAtt[`s_${r}_d_${wd.day}`] || '').toUpperCase();
+      const v2 = (mAtt[`s_${r}_d_${wd.day}_2`] || mAtt[`s_${r}_d_${wd.day}`] || '').toUpperCase();
+      if (v1 === 'P' || v1 === '1' || v2 === 'P' || v2 === '1') dayPresentSum++;
+    });
+    if (dayPresentSum > maxDayPresent) {
+      maxDayPresent = dayPresentSum;
+      maxDayDateStr = `${wd.day} ${monthNameHi}`;
+    }
+  });
+  DB.classSettings.cb.p5.maxPresent = maxDayPresent > 0 ? `${maxDayPresent} (${maxDayDateStr})` : '';
+
+  // Top 5 Students Ranking
   studentStats.sort((a, b) => b.pct - a.pct);
   for (let i = 0; i < 5; i++) {
     const pKey = 'top' + (i + 1);
     if (i < studentStats.length) {
       const s = studentStats[i];
       const slcTag = s.isSlc ? ' [SLC]' : '';
-      DB.classSettings.cb.p5[pKey] = `रोल ${s.rollNo} - ${s.name}${slcTag} (${s.pct.toFixed(1)}%)`;
+      DB.classSettings.cb.p5[pKey] = `रोल ${s.rollNo} - ${s.name}${slcTag} (${s.presentSessions}/${s.totalSessions}) (${s.pct.toFixed(1)}%)`;
     } else {
       DB.classSettings.cb.p5[pKey] = '-';
     }
   }
+
+  // Live update all DOM inputs for CB-5
+  document.querySelectorAll('#pane_cb_p5 .fld, #sheet_cb_p5 .fld').forEach(inp => {
+    const path = inp.getAttribute('data-path');
+    if (path && (path.startsWith('classSettings.cb.p5.') || path.startsWith('classSettings.'))) {
+      const val = getByPath(DB, path);
+      inp.value = val || '';
+    }
+  });
 
   const mSel = document.getElementById('cb5MonthSelect');
   if (mSel) mSel.value = mKey;
@@ -17146,7 +17210,8 @@ function calculateGrade(marks, maxMarks) {
   if (isNaN(m) || m < 0) return '';
   const max = parseFloat(maxMarks) || 20;
   if (max <= 0) return '';
-  const pct = Math.round(((m / max) * 100) * 100) / 100;
+  const clampedM = Math.min(max, m);
+  const pct = Math.min(100, Math.round(((clampedM / max) * 100) * 100) / 100);
 
   // MCD Official 5-Tier Primary Grading Scale (A, B, C, D, E)
   if (pct >= 75) return 'A';
