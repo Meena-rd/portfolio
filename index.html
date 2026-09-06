@@ -15035,6 +15035,49 @@ function closeStorageModal() {
   if (m) m.style.display = 'none';
 }
 
+
+/* ================= 🏛️ WORKSPACE MAP & 4-WORKSPACE NAVIGATION ENGINE ================= */
+const WORKSPACE_MAP = {
+  master_roster: 'class',
+  fln_sheet: 'class',
+  result_sheet: 'class',
+  attendance: 'class',
+  peer_groups: 'class',
+  cover: 'student',
+  f1: 'student',
+  cs: 'student',
+  ss: 'student',
+  f2: 'reports',
+  cb: 'reports',
+  plan_vault: 'resources',
+  fln_modules: 'resources',
+  unit_tests: 'resources'
+};
+
+const WORKSPACE_DEFAULT_TABS = {
+  class: 'master_roster',
+  student: 'cover',
+  reports: 'f2',
+  resources: 'plan_vault'
+};
+
+function switchWorkspace(wsId) {
+  if (!wsId || !WORKSPACE_DEFAULT_TABS[wsId]) wsId = 'class';
+  
+  // Highlight active Workspace Tab in Header
+  document.querySelectorAll('.ws-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === 'wsBtn_' + wsId);
+  });
+
+  // Highlight active Subnav Group
+  document.querySelectorAll('.subnav-group').forEach(grp => {
+    grp.classList.toggle('active', grp.id === 'subnav_' + wsId);
+  });
+
+  const targetTab = WORKSPACE_DEFAULT_TABS[wsId];
+  switchTab(targetTab);
+}
+
 function switchTab(tabId) {
   if (!tabId) tabId = 'master_roster';
   DB.activeTab = tabId;
@@ -15312,16 +15355,8 @@ function setInkColor(color, el) {
 // ===================================================================
 
 // switchWorkspace — main nav tabs
-function switchWorkspace(ws) {
-  const allPanes = document.querySelectorAll('.workspace-pane, [data-workspace]');
-  allPanes.forEach(function(p) { p.style.display = 'none'; p.classList.remove('active'); });
-  const target = document.getElementById('ws_' + ws) || document.getElementById('pane_' + ws) || document.getElementById('workspace_' + ws);
-  if (target) { target.style.display = ''; target.classList.add('active'); }
-  document.querySelectorAll('.ws-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  const activeBtn = document.getElementById('wsBtn_' + ws);
-  if (activeBtn) activeBtn.classList.add('active');
-  if (ws === 'class' && typeof renderMasterRosterTable === 'function') renderMasterRosterTable();
-}
+// switchWorkspace handled by unified engine above
+
 
 // handleDashboardPrimaryCta — dashboard main CTA button
 function handleDashboardPrimaryCta() {
@@ -15577,6 +15612,287 @@ function setAppLanguage(lang) {
 }
 
 // Apply on page load
+
+/* ================= 📊 CB-5: LIVE MONTHLY ATTENDANCE AUTO-SYNC ENGINE ================= */
+function syncAttendanceToCB5(monthKey = null) {
+  const mKey = monthKey || currentAttendanceMonth || 'apr';
+  const info = (typeof ATT_MONTH_INFO !== 'undefined' && ATT_MONTH_INFO[mKey]) ? ATT_MONTH_INFO[mKey] : { name: 'अप्रैल', year: 2026, monthIdx: 3, days: 30 };
+  const mAtt = (DB.attendance && DB.attendance[mKey]) ? DB.attendance[mKey] : {};
+
+  if (!DB.classSettings) DB.classSettings = {};
+  if (!DB.classSettings.cb) DB.classSettings.cb = {};
+  if (!DB.classSettings.cb.p5) DB.classSettings.cb.p5 = {};
+
+  const monthNameHi = info.name ? info.name.split(' ')[0] : 'अप्रैल';
+  DB.classSettings.cb.p5.monthYear = `${monthNameHi} ${info.year}`;
+
+  const allStudents = DB.students || [];
+  const enrolledStudents = allStudents.filter(std => {
+    if (typeof isStudentEnrolledInMonth === 'function') return isStudentEnrolledInMonth(std, info.year, info.monthIdx);
+    return std && std.status !== 'slc';
+  });
+  DB.classSettings.cb.p5.enrolled = String(enrolledStudents.length);
+
+  let workingDays = [];
+  if (typeof calculateDailyAttendanceLedger === 'function') {
+    const res = calculateDailyAttendanceLedger(mKey);
+    workingDays = (res && res.ledger) ? res.ledger.filter(d => d.isWorking) : [];
+  }
+
+  const studentStats = [];
+  let totalClassPresentSessions = 0;
+  let totalClassPossibleSessions = 0;
+  let longAbsentCount = 0;
+
+  allStudents.forEach((std, r) => {
+    if (!std || !std.studentName || !std.studentName.trim()) return;
+    let stPresentSessions = 0;
+    let stEligibleSessions = 0;
+
+    workingDays.forEach(wd => {
+      stEligibleSessions += 2;
+      totalClassPossibleSessions += 2;
+      const rawV1 = mAtt[`s_${r}_d_${wd.day}_1`];
+      const rawV2 = mAtt[`s_${r}_d_${wd.day}_2`];
+      const isP1 = (rawV1 === 'P' || rawV1 === '1');
+      const isP2 = (rawV2 === 'P' || rawV2 === '1');
+      if (isP1) { stPresentSessions++; totalClassPresentSessions++; }
+      if (isP2) { stPresentSessions++; totalClassPresentSessions++; }
+    });
+
+    if (stEligibleSessions > 0) {
+      const pct = (stPresentSessions / stEligibleSessions) * 100;
+      const isSlc = (std.status === 'slc');
+      const rNo = isSlc ? (std.frozenRollNo || std.rollNo || (r + 1)) : (std.rollNo || (r + 1));
+      studentStats.push({ rollNo: rNo, name: std.studentName, pct, isSlc });
+    }
+  });
+
+  DB.classSettings.cb.p5.longAbsent = String(longAbsentCount);
+  let avgPctStr = '0.0%';
+  if (totalClassPossibleSessions > 0) {
+    avgPctStr = ((totalClassPresentSessions / totalClassPossibleSessions) * 100).toFixed(1) + '%';
+  }
+  DB.classSettings.cb.p5.avgAttendance = avgPctStr;
+
+  studentStats.sort((a, b) => b.pct - a.pct);
+  for (let i = 0; i < 5; i++) {
+    const pKey = 'top' + (i + 1);
+    if (i < studentStats.length) {
+      const s = studentStats[i];
+      const slcTag = s.isSlc ? ' [SLC]' : '';
+      DB.classSettings.cb.p5[pKey] = `रोल ${s.rollNo} - ${s.name}${slcTag} (${s.pct.toFixed(1)}%)`;
+    } else {
+      DB.classSettings.cb.p5[pKey] = '-';
+    }
+  }
+
+  const mSel = document.getElementById('cb5MonthSelect');
+  if (mSel) mSel.value = mKey;
+}
+
+/* ================= 📷 STUDENT PHOTO MANAGEMENT ENGINE ================= */
+let activePhotoTarget = null;
+function handleSlotClick(event, target) {
+  if (event && event.target && event.target.closest && event.target.closest('.del-photo-btn')) return;
+  uploadPhoto(target);
+}
+
+function uploadPhoto(target) {
+  activePhotoTarget = target;
+  const input = document.getElementById('globalPhotoInput');
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
+
+function removePhoto(event, target) {
+  if (event && event.stopPropagation) event.stopPropagation();
+  const st = (typeof getActiveStudent === 'function') ? getActiveStudent() : (DB.students && DB.students[0]);
+  if (!st) return;
+
+  pushHistory();
+  if (target === 'cover' && st.cover) { st.cover.photo = ''; if (st.f1) st.f1.photo = ''; }
+  else if (target === 'f1' && st.f1) { st.f1.photo = ''; }
+  else if (target === 'ss' && st.ss) { st.ss.photo = ''; }
+  updatePhotoViews();
+  saveDBDirect();
+}
+
+function handlePhotoSelected(e) {
+  const file = e.target.files && e.target.files[0];
+  const st = (typeof getActiveStudent === 'function') ? getActiveStudent() : (DB.students && DB.students[0]);
+  if (!file || !activePhotoTarget || !st) return;
+
+  pushHistory();
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const maxW = 400, maxH = 500;
+      let w = img.width, h = img.height;
+      if (w > maxW || h > maxH) {
+        const r = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * r);
+        h = Math.round(h * r);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+      if (activePhotoTarget === 'cover') {
+        if (!st.cover) st.cover = {};
+        st.cover.photo = dataUrl;
+        if (st.f1) st.f1.photo = dataUrl;
+      } else if (activePhotoTarget === 'f1') {
+        if (!st.f1) st.f1 = {};
+        st.f1.photo = dataUrl;
+      } else if (activePhotoTarget === 'ss') {
+        if (!st.ss) st.ss = {};
+        st.ss.photo = dataUrl;
+      }
+
+      updatePhotoViews();
+      saveDBDirect();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updatePhotoViews() {
+  const st = (typeof getActiveStudent === 'function') ? getActiveStudent() : (DB.students && DB.students[0]);
+  const targets = [
+    { key: 'cover', url: st ? (st.cover && st.cover.photo) : '' },
+    { key: 'f1', url: st ? (st.f1 && st.f1.photo) : '' },
+    { key: 'ss', url: st ? (st.ss && st.ss.photo) : '' }
+  ];
+
+  targets.forEach(t => {
+    const slot = document.getElementById('slot_' + t.key);
+    if (slot) {
+      if (t.url) {
+        slot.innerHTML = `<img src="${t.url}" style="width:100%; height:100%; object-fit:cover; border-radius:4px;"><button type="button" class="del-photo-btn" onclick="removePhoto(event, '${t.key}')" title="फोटो हटाएं">✕</button>`;
+      } else {
+        slot.innerHTML = `<span style="font-size:24px; color:#cbd5e1;">📷</span><span style="font-size:10px; color:#64748b; font-weight:700; margin-top:4px;">फोटो अपलोड करें</span>`;
+      }
+    }
+  });
+}
+
+/* ================= 🏛️ LIVE CALM CLASS DASHBOARD ================= */
+function renderLiveCalmDashboard() {
+  const dash = document.getElementById('liveCalmDashboard');
+  if (!dash) return;
+
+  const sName = (DB.classSettings && DB.classSettings.schoolName) ? DB.classSettings.schoolName.trim() : '';
+  const sess = (DB.classSettings && DB.classSettings.session) ? DB.classSettings.session.trim() : '2026-27';
+  const cls = (DB.classSettings && DB.classSettings.classSec) ? DB.classSettings.classSec.trim() : '';
+  const tName = (DB.classSettings && DB.classSettings.f2 && DB.classSettings.f2.classTeacher) ? DB.classSettings.f2.classTeacher.trim() : '';
+
+  const schoolEl = document.getElementById('dashSchoolName');
+  const sessEl = document.getElementById('dashSessionYear');
+  const clsEl = document.getElementById('dashClassSec');
+  const teachEl = document.getElementById('dashTeacherName');
+
+  if (schoolEl) schoolEl.textContent = sName || 'प्राथमिक सह-शिक्षा विद्यालय';
+  if (sessEl) sessEl.textContent = sess;
+  if (clsEl) clsEl.textContent = cls || 'कक्षा -';
+  if (teachEl) teachEl.textContent = tName || '-';
+
+  const validStudents = (DB.students || []).filter(s => s && s.studentName && s.studentName.trim().length > 0 && s.status !== 'slc');
+  const activeCount = validStudents.length;
+  const slcCount = (DB.students || []).filter(s => s && s.status === 'slc').length;
+
+  const activeEl = document.getElementById('dashActiveStudentsCount');
+  const slcEl = document.getElementById('dashSlcStudentsCount');
+  if (activeEl) activeEl.textContent = String(activeCount);
+  if (slcEl) slcEl.textContent = `🔒 ${slcCount} नाम कटा (SLC)`;
+
+  let latestDateWithScores = 0;
+  let totalAssessedOnLatest = 0;
+
+  for (let d = 1; d <= 20; d++) {
+    let dAssessed = 0;
+    (DB.students || []).forEach((st, rIdx) => {
+      if (!st || !st.studentName || st.status === 'slc') return;
+      const vH = (DB.flnSheetScores && DB.flnSheetScores[`s_${rIdx}_d_${d}_h`]) || '';
+      const vM = (DB.flnSheetScores && DB.flnSheetScores[`s_${rIdx}_d_${d}_m`]) || '';
+      const vE = (DB.flnSheetScores && DB.flnSheetScores[`s_${rIdx}_d_${d}_e`]) || '';
+      if (parseInt(vH, 10) >= 1 || parseInt(vM, 10) >= 1 || parseInt(vE, 10) >= 1) dAssessed++;
+    });
+    if (dAssessed > 0) { latestDateWithScores = d; totalAssessedOnLatest = dAssessed; }
+  }
+
+  const flnCountEl = document.getElementById('dashFlnAssessedCount');
+  const flnLabelEl = document.getElementById('dashFlnDateLabel');
+  const flnDetailEl = document.getElementById('dashFlnStatusDetail');
+  const primaryCta = document.getElementById('dashPrimaryCtaBtn');
+
+  if (latestDateWithScores === 0) {
+    if (flnCountEl) flnCountEl.textContent = `0 / ${activeCount}`;
+    if (flnLabelEl) flnLabelEl.textContent = 'पाक्षिक FLN मूल्यांकन स्थिति';
+    if (flnDetailEl) flnDetailEl.textContent = 'अभी कोई पाक्षिक FLN डेटा दर्ज नहीं है';
+  } else {
+    if (flnCountEl) flnCountEl.textContent = `${totalAssessedOnLatest} / ${activeCount}`;
+    if (flnLabelEl) flnLabelEl.textContent = `पाक्षिक असेसमेंट (Date ${latestDateWithScores})`;
+    if (flnDetailEl) flnDetailEl.textContent = `मूल्यांकित: ${totalAssessedOnLatest} विद्यार्थी`;
+  }
+
+  const nowStr = new Date().toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit' });
+  const lastSaveEl = document.getElementById('dashLastSaveTime');
+  if (lastSaveEl) lastSaveEl.textContent = `अंतिम सुरक्षित: ${nowStr}`;
+}
+
+function handleDashboardPrimaryCta() {
+  switchTab('fln_sheet');
+  if (typeof showToast === 'function') showToast('📊 FLN असेसमेंट शीट पर जा रहे हैं...', 'info');
+}
+
+/* ================= ⚖️ LEGAL CONSENT & LOGIN MODAL HANDLERS ================= */
+function closeLegalConsentModal() {
+  const m = document.getElementById('legalConsentModal');
+  if (m) m.style.display = 'none';
+}
+
+function confirmLegalConsentAcceptance() {
+  try { localStorage.setItem('mcd_legal_consent_accepted', 'true'); } catch(e){}
+  closeLegalConsentModal();
+  if (typeof showToast === 'function') showToast('✓ वैधानिक शर्तें स्वीकार कर ली गई हैं', 'success');
+}
+
+function closeLoginModalOnBg(e) {
+  if (e && e.target && e.target.id === 'loginModal' && typeof closeLoginModal === 'function') {
+    closeLoginModal();
+  }
+}
+
+function verifyTeacherLogin() {
+  if (typeof closeLoginModal === 'function') closeLoginModal();
+  if (typeof showToast === 'function') showToast('✓ लॉग इन सफल!', 'success');
+}
+
+function rollbackToLocalSafetySnapshot() {
+  if (typeof showAlert === 'function') showAlert('स्थानीय सुरक्षा स्नैपशॉट से डेटा सुरक्षित पुनर्स्थापित किया जा सकता है।', 'info');
+}
+
+function _saveCBGradeCurrentFields(pageKey) {
+  if (!DB.classSettings) DB.classSettings = {};
+  if (!DB.classSettings.cb) DB.classSettings.cb = {};
+  if (!DB.classSettings.cb[pageKey]) DB.classSettings.cb[pageKey] = {};
+  const term = (typeof currentCBGradeTerm !== 'undefined' && currentCBGradeTerm[pageKey]) ? currentCBGradeTerm[pageKey] : 'mid';
+  if (!DB.classSettings.cb[pageKey][term]) DB.classSettings.cb[pageKey][term] = {};
+  const fields = (pageKey === 'p3') ? ['totalStudents', 'sky', 'mountain', 'stream'] : ['totalStudents', 'beginner', 'proficient', 'advanced'];
+  fields.forEach(f => {
+    const el = document.getElementById(`cb_${pageKey}_${f}`);
+    if (el) DB.classSettings.cb[pageKey][term][f] = el.value || '';
+  });
+}
+
+
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     initDynamicTables();
