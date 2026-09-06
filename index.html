@@ -2543,12 +2543,28 @@
     <!-- Sub-Navigation Row (Contextual to active workspace) -->
     <div class="subnav-container" id="subnavContainer">
       <!-- 1. Subnav: Class Workspace -->
-      <div class="subnav-group active" id="subnav_class">
-        <button type="button" class="tab-btn active" data-tab="master_roster" onclick="switchTab('master_roster')"><span data-lk="📋 1. मास्टर छात्र रजिस्टर">📋 1. मास्टर छात्र रजिस्टर</span></button>
-        <button type="button" class="tab-btn" data-tab="fln_sheet" onclick="switchTab('fln_sheet')"><span data-lk="📊 2. FLN असेसमेंट शीट (20 तारीखें)">📊 2. FLN असेसमेंट शीट (20 तारीखें)</span></button>
-        <button type="button" class="tab-btn" data-tab="result_sheet" onclick="switchTab('result_sheet')"><span data-lk="🏆 3. परीक्षा एवं परिणाम (Exam &amp; Result)">🏆 3. परीक्षा एवं परिणाम (Exam &amp; Result)</span></button>
-        <button type="button" class="tab-btn" data-tab="attendance" onclick="switchTab('attendance')"><span data-lk="📅 4. छात्र उपस्थिति पंजिका (Attendance Register)">📅 4. छात्र उपस्थिति पंजिका (Attendance Register)</span></button>
-        <button type="button" class="tab-btn" data-tab="peer_groups" onclick="switchTab('peer_groups')"><span data-lk="🤝 5. सहपाठी समूह (Peer Groups)">🤝 5. सहपाठी समूह (Peer Groups)</span></button>
+      <div class="subnav-group active" id="subnav_class" style="width:100%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+        <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+          <button type="button" class="tab-btn active" data-tab="master_roster" onclick="switchTab('master_roster')"><span data-lk="📋 1. मास्टर छात्र रजिस्टर">📋 1. मास्टर छात्र रजिस्टर</span></button>
+          <button type="button" class="tab-btn" data-tab="fln_sheet" onclick="switchTab('fln_sheet')"><span data-lk="📊 2. FLN असेसमेंट शीट (20 तारीखें)">📊 2. FLN असेसमेंट शीट (20 तारीखें)</span></button>
+          <button type="button" class="tab-btn" data-tab="result_sheet" onclick="switchTab('result_sheet')"><span data-lk="🏆 3. परीक्षा एवं परिणाम (Exam &amp; Result)">🏆 3. परीक्षा एवं परिणाम (Exam &amp; Result)</span></button>
+          <button type="button" class="tab-btn" data-tab="attendance" onclick="switchTab('attendance')"><span data-lk="📅 4. छात्र उपस्थिति पंजिका (Attendance Register)">📅 4. छात्र उपस्थिति पंजिका (Attendance Register)</span></button>
+          <button type="button" class="tab-btn" data-tab="peer_groups" onclick="switchTab('peer_groups')"><span data-lk="🤝 5. सहपाठी समूह (Peer Groups)">🤝 5. सहपाठी समूह (Peer Groups)</span></button>
+        </div>
+        <div class="class-action-bar no-print" style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+          <button type="button" class="action-btn" onclick="exportCurrentClassTabToExcel()" style="background:#059669; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="वर्तमान खुले रजिस्टर को Excel (.csv) में डाउनलोड करें">
+            📊 Excel डाउनलोड
+          </button>
+          <button type="button" class="action-btn" onclick="copyCurrentClassTabForExcel()" style="background:#0284c7; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="वर्तमान रजिस्टर का सारा डेटा Excel हेतु कॉपी करें (Ctrl+V)">
+            📋 Excel कॉपी
+          </button>
+          <button type="button" class="action-btn" onclick="openShareModal()" style="background:#16a34a; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="कक्षा के सभी आधिकारिक रजिस्टर व रिपोर्ट्स शेयर करें">
+            📤 शेयर पोर्टल
+          </button>
+          <button type="button" class="action-btn" onclick="window.print()" style="background:#1e293b; color:#ffffff; font-weight:800; padding:4px 9px; font-size:11.5px; border-radius:5px;" title="वर्तमान रजिस्टर का A4 प्रिंट करें">
+            🖨️ प्रिंट
+          </button>
+        </div>
       </div>
 
       <!-- 2. Subnav: Student Portfolio Workspace & Contextual Bar -->
@@ -3016,6 +3032,15 @@
             </button>
             <button class="action-btn" style="background:#9333ea; padding:5px 12px; font-size:12px;" onclick="pushFlnSummaryToF2()" title="समरी को Annexure F2 में भेजें">
               📤 F2 में समरी भेजें
+            </button>
+            <button type="button" class="action-btn" style="background:#0284c7; color:#ffffff; padding:5px 12px; font-size:12px; font-weight:800;" onclick="copyFlnSheetForExcel()" title="पूरी FLN असेसमेंट शीट (20 तारीखें) को 1-क्लिक में क्लिपबोर्ड पर कॉपी करें (सीधे Excel में Ctrl+V से पेस्ट करें)">
+              📋 Excel हेतु कॉपी करें
+            </button>
+            <button type="button" class="action-btn" style="background:#059669; color:#ffffff; padding:5px 12px; font-size:12px; font-weight:800;" onclick="exportFlnSheetToExcel()" title="पूरी FLN असेसमेंट शीट (20 तारीखें) Excel (.csv) में डाउनलोड करें">
+              📥 Excel डाउनलोड
+            </button>
+            <button type="button" class="action-btn" style="background:#16a34a; color:#ffffff; padding:5px 12px; font-size:12px; font-weight:800;" onclick="openShareModal()" title="FLN असेसमेंट शीट व रिपोर्ट्स शेयर करें">
+              📤 शेयर
             </button>
             <button class="action-btn btn-print" style="padding:5px 14px; font-size:12px;" onclick="window.print()" title="2 A4 Landscape पेजों में सटीक प्रिंट करें">
               🖨️ A4 लैंडस्केप प्रिंट करें
@@ -4132,6 +4157,15 @@
                 <span style="font-size:12px; font-weight:800; color:#334155;">📅 उपस्थिति तारीख:</span>
                 <input type="date" id="peerAttendanceDateInput" value="${selectedPeerAttendanceDate}" onchange="changePeerAttendanceDate(this.value)" style="border:none; font-size:12.5px; font-weight:800; color:#0f172a; outline:none; background:transparent; cursor:pointer;">
               </div>
+              <button type="button" class="action-btn" style="background:#0284c7; color:#ffffff; padding:7px 12px; font-size:12px; font-weight:800;" onclick="copyPeerGroupsForExcel()" title="सभी सहपाठी समूहों की सूची Excel हेतु कॉपी करें (Ctrl+V)">
+                📋 Excel कॉपी
+              </button>
+              <button type="button" class="action-btn" style="background:#059669; color:#ffffff; padding:7px 12px; font-size:12px; font-weight:800;" onclick="exportPeerGroupsToExcel()" title="सभी सहपाठी समूहों को Excel (.csv) में डाउनलोड करें">
+                📥 Excel डाउनलोड
+              </button>
+              <button type="button" class="action-btn" style="background:#16a34a; color:#ffffff; padding:7px 12px; font-size:12px; font-weight:800;" onclick="openShareModal()" title="सहपाठी समूह व कक्षा रिपोर्ट्स शेयर करें">
+                📤 शेयर
+              </button>
               <button type="button" class="dash-primary-cta" id="peerPrimaryCreateBtn" onclick="openPeerFullClassSetupModal()" style="background:#15803d; color:#ffffff;">
                 ➕ कक्षा समूह सेटअप (Setup All Groups)
               </button>
@@ -4270,6 +4304,9 @@
             </button>
             <button class="action-btn" style="background:#059669; padding:5px 10px; font-size:11.5px;" onclick="exportResultToExcel()" title="इस परिणाम तालिका को Excel (.csv) में डाउनलोड करें">
               📥 Excel एक्सपोर्ट
+            </button>
+            <button type="button" class="action-btn" style="background:#16a34a; color:#ffffff; padding:5px 10px; font-size:11.5px; font-weight:800;" onclick="openShareModal()" title="परीक्षा परिणाम व रिपोर्ट्स शेयर करें">
+              📤 शेयर
             </button>
             <button class="action-btn btn-print" style="padding:5px 10px; font-size:11.5px;" onclick="window.print()" title="रिजल्ट शीट को A4 लैंडस्केप में प्रिंट करें">
               🖨️ प्रिंट
@@ -5054,7 +5091,91 @@
 
         <!-- SECTION 2: CLASS LEVEL OFFICIAL DOCUMENTS -->
         <div style="font-weight:900; font-size:13.5px; color:#1e293b; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-          🏫 <span>2. संपूर्ण कक्षा के आधिकारिक दस्तावेज (Whole Class Official Reports):</span>
+          🏫 <span>2. संपूर्ण कक्षा के आधिकारिक रजिस्टर व रिपोर्ट्स (Class Registers & Official Reports):</span>
+        </div>
+
+        <!-- Subheading 2A: 5 Main Class Workspace Registers -->
+        <div style="font-weight:800; font-size:12.5px; color:#15803d; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+          📊 <span>कक्षा रजिस्टर व एक्सेल डेटा हब (Class Registers & Excel Data):</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:10px; margin-bottom:16px;">
+          
+          <!-- Doc CR-1: Master Student Roster -->
+          <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div>
+              <div style="font-weight:800; font-size:13px; color:#0f172a;">📋 1. मास्टर छात्र रजिस्टर (Master Roster)</div>
+              <div style="font-size:11px; color:#64748b;">सभी 22 कॉलम: Roll, Admn, SRN, APAAR, Category</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="action-btn" onclick="shareDocAction('master_roster', 'excel')" style="background:#059669; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel (.csv) में डाउनलोड करें">📊 Excel</button>
+              <button class="action-btn" onclick="shareDocAction('master_roster', 'excel_copy')" style="background:#0284c7; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel हेतु क्लिपबोर्ड पर कॉपी करें (Ctrl+V)">📋 कॉपी</button>
+              <button class="action-btn" onclick="shareDocAction('master_roster', 'pdf')" style="background:#1e293b; padding:4px 7px; font-size:11px; font-weight:800;" title="प्रिंट / PDF खोलें">🖨️ प्रिंट</button>
+              <button class="action-btn" onclick="shareDocAction('master_roster', 'whatsapp')" style="background:#16a34a; padding:4px 7px; font-size:11px; font-weight:800;" title="WhatsApp पर भेजें">📲</button>
+            </div>
+          </div>
+
+          <!-- Doc CR-2: FLN 20-Dates Sheet -->
+          <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div>
+              <div style="font-weight:800; font-size:13px; color:#15803d;">📊 2. FLN असेसमेंट शीट (20 तारीखें)</div>
+              <div style="font-size:11px; color:#64748b;">20 तारीखें x 3 विषय (हिन्दी/गणित/अंग्रेजी) पूरा डेटा</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="action-btn" onclick="shareDocAction('fln_sheet', 'excel')" style="background:#059669; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel (.csv) में डाउनलोड करें">📊 Excel</button>
+              <button class="action-btn" onclick="shareDocAction('fln_sheet', 'excel_copy')" style="background:#0284c7; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel हेतु क्लिपबोर्ड पर कॉपी करें (Ctrl+V)">📋 कॉपी</button>
+              <button class="action-btn" onclick="shareDocAction('fln_sheet', 'pdf')" style="background:#1e293b; padding:4px 7px; font-size:11px; font-weight:800;" title="प्रिंट / PDF खोलें">🖨️ प्रिंट</button>
+              <button class="action-btn" onclick="shareDocAction('fln_sheet', 'whatsapp')" style="background:#16a34a; padding:4px 7px; font-size:11px; font-weight:800;" title="WhatsApp पर भेजें">📲</button>
+            </div>
+          </div>
+
+          <!-- Doc CR-3: Exam & Result Register -->
+          <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div>
+              <div style="font-weight:800; font-size:13px; color:#d97706;">🏆 3. परीक्षा एवं परिणाम (Exam Result)</div>
+              <div style="font-size:11px; color:#64748b;">PA-1, Mid-Term, PA-2, Annual विषयवार प्राप्तांक व ग्रेड</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="action-btn" onclick="shareDocAction('result_sheet', 'excel')" style="background:#059669; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel (.csv) में डाउनलोड करें">📊 Excel</button>
+              <button class="action-btn" onclick="shareDocAction('result_sheet', 'excel_copy')" style="background:#0284c7; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel हेतु क्लिपबोर्ड पर कॉपी करें (Ctrl+V)">📋 कॉपी</button>
+              <button class="action-btn" onclick="shareDocAction('result_sheet', 'pdf')" style="background:#1e293b; padding:4px 7px; font-size:11px; font-weight:800;" title="प्रिंट / PDF खोलें">🖨️ प्रिंट</button>
+              <button class="action-btn" onclick="shareDocAction('result_sheet', 'whatsapp')" style="background:#16a34a; padding:4px 7px; font-size:11px; font-weight:800;" title="WhatsApp पर भेजें">📲</button>
+            </div>
+          </div>
+
+          <!-- Doc CR-4: Student Daily Attendance Register -->
+          <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div>
+              <div style="font-weight:800; font-size:13px; color:#0284c7;">📅 4. छात्र उपस्थिति पंजिका (Attendance)</div>
+              <div style="font-size:11px; color:#64748b;">31 दिवसीय दैनिक उपस्थिति, बालक-बालिका व %</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="action-btn" onclick="shareDocAction('attendance', 'excel')" style="background:#059669; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel (.csv) में डाउनलोड करें">📊 Excel</button>
+              <button class="action-btn" onclick="shareDocAction('attendance', 'excel_copy')" style="background:#0284c7; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel हेतु क्लिपबोर्ड पर कॉपी करें (Ctrl+V)">📋 कॉपी</button>
+              <button class="action-btn" onclick="shareDocAction('attendance', 'pdf')" style="background:#1e293b; padding:4px 7px; font-size:11px; font-weight:800;" title="प्रिंट / PDF खोलें">🖨️ प्रिंट</button>
+              <button class="action-btn" onclick="shareDocAction('attendance', 'whatsapp')" style="background:#16a34a; padding:4px 7px; font-size:11px; font-weight:800;" title="WhatsApp पर भेजें">📲</button>
+            </div>
+          </div>
+
+          <!-- Doc CR-5: Peer Groups Chart -->
+          <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div>
+              <div style="font-weight:800; font-size:13px; color:#7c3aed;">🤝 5. सहपाठी समूह (Peer Learning Groups)</div>
+              <div style="font-size:11px; color:#64748b;">समूह लीडर, सदस्य व दैनिक सहयोग रिकॉर्ड</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="action-btn" onclick="shareDocAction('peer_groups', 'excel')" style="background:#059669; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel (.csv) में डाउनलोड करें">📊 Excel</button>
+              <button class="action-btn" onclick="shareDocAction('peer_groups', 'excel_copy')" style="background:#0284c7; padding:4px 7px; font-size:11px; font-weight:800;" title="Excel हेतु क्लिपबोर्ड पर कॉपी करें (Ctrl+V)">📋 कॉपी</button>
+              <button class="action-btn" onclick="shareDocAction('peer_groups', 'pdf')" style="background:#1e293b; padding:4px 7px; font-size:11px; font-weight:800;" title="प्रिंट / PDF खोलें">🖨️ प्रिंट</button>
+              <button class="action-btn" onclick="shareDocAction('peer_groups', 'whatsapp')" style="background:#16a34a; padding:4px 7px; font-size:11px; font-weight:800;" title="WhatsApp पर भेजें">📲</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Subheading 2B: Summary Reports & Visual Boards -->
+        <div style="font-weight:800; font-size:12.5px; color:#1e3a8a; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+          📈 <span>कक्षा बोर्ड व समरी रिपोर्ट्स (Visual Boards & Combined Reports):</span>
         </div>
 
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:10px; margin-bottom:14px;">
@@ -17959,6 +18080,391 @@ function changeShareStudent(studentIdxVal) {
   }
 }
 
+
+/* ================= 📊 UNIVERSAL CLASS EXCEL & SHARE ENGINE ================= */
+
+function copyFlnSheetForExcel() {
+  if (!DB.students || DB.students.length === 0) {
+    showAlert('कक्षा में अभी कोई विद्यार्थी दर्ज नहीं है।', 'info');
+    return;
+  }
+
+  const dates = (DB.flnSheetDates && DB.flnSheetDates.length === 20) ? DB.flnSheetDates : DEFAULT_FLN_DATES;
+  let headers = ['Sr No', 'Roll No', 'Admission No', 'Student Name', 'Status'];
+  dates.forEach((d, idx) => {
+    const label = d.dateStr || ('Date ' + (idx + 1));
+    headers.push(`${label} - Hindi`);
+    headers.push(`${label} - Maths`);
+    headers.push(`${label} - English`);
+  });
+
+  let tsv = headers.join('\t') + '\n';
+  let copiedCount = 0;
+
+  DB.students.forEach((s, r) => {
+    if (!s || (!s.studentName && !s.admissionNo)) return;
+    copiedCount++;
+    const rNo = s.status === 'slc' ? (s.frozenRollNo || s.rollNo || (r + 1)) : (s.rollNo || (r + 1));
+    let row = [
+      r + 1,
+      rNo,
+      s.admissionNo || '',
+      s.studentName || '',
+      s.status === 'slc' ? 'SLC' : 'Active'
+    ];
+
+    dates.forEach((d, dIdx) => {
+      const idx1 = dIdx + 1;
+      const h = (DB.flnSheetScores && DB.flnSheetScores[`s_${r}_d_${idx1}_h`]) || '';
+      const m = (DB.flnSheetScores && DB.flnSheetScores[`s_${r}_d_${idx1}_m`]) || '';
+      const e = (DB.flnSheetScores && DB.flnSheetScores[`s_${r}_d_${idx1}_e`]) || '';
+      row.push(h, m, e);
+    });
+
+    tsv += row.join('\t') + '\n';
+  });
+
+  copyTextToClipboard(tsv, `✅ संपूर्ण FLN असेसमेंट शीट (${copiedCount} विद्यार्थी, 20 तारीखें) क्लिपबोर्ड पर कॉपी हो गई! Excel में Ctrl+V से पेस्ट करें।`);
+}
+
+function exportFlnSheetToExcel() {
+  if (!DB.students || DB.students.length === 0) {
+    showAlert('कक्षा में अभी कोई विद्यार्थी दर्ज नहीं है।', 'info');
+    return;
+  }
+
+  const dates = (DB.flnSheetDates && DB.flnSheetDates.length === 20) ? DB.flnSheetDates : DEFAULT_FLN_DATES;
+  let headers = ['Sr No', 'Roll No', 'Admission No', 'Student Name', 'Status'];
+  dates.forEach((d, idx) => {
+    const label = (d.dateStr || ('Date_' + (idx + 1))).replace(/"/g, '""');
+    headers.push(`"${label} - Hindi"`, `"${label} - Maths"`, `"${label} - English"`);
+  });
+
+  let csv = '\ufeff' + headers.join(',') + '\n';
+  let count = 0;
+
+  DB.students.forEach((s, r) => {
+    if (!s || (!s.studentName && !s.admissionNo)) return;
+    count++;
+    const rNo = s.status === 'slc' ? (s.frozenRollNo || s.rollNo || (r + 1)) : (s.rollNo || (r + 1));
+    let row = [
+      r + 1,
+      `"${rNo}"`,
+      `"${(s.admissionNo || '').replace(/"/g, '""')}"`,
+      `"${(s.studentName || '').replace(/"/g, '""')}"`,
+      s.status === 'slc' ? '"SLC"' : '"Active"'
+    ];
+
+    dates.forEach((d, dIdx) => {
+      const idx1 = dIdx + 1;
+      const h = (DB.flnSheetScores && DB.flnSheetScores[`s_${r}_d_${idx1}_h`]) || '';
+      const m = (DB.flnSheetScores && DB.flnSheetScores[`s_${r}_d_${idx1}_m`]) || '';
+      const e = (DB.flnSheetScores && DB.flnSheetScores[`s_${r}_d_${idx1}_e`]) || '';
+      row.push(`"${h}"`, `"${m}"`, `"${e}"`);
+    });
+
+    csv += row.join(',') + '\n';
+  });
+
+  const cls = (DB.classSettings && DB.classSettings.classSec) ? DB.classSettings.classSec.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Class';
+  downloadCsvFile(csv, `FLN_Assessment_20Dates_${cls}_${Date.now()}.csv`);
+  showToast(`✅ FLN असेसमेंट शीट (${count} विद्यार्थी) Excel में डाउनलोड हो गई!`, 'success');
+}
+
+function copyExamResultForExcel() {
+  if (!DB.students || DB.students.length === 0) {
+    showAlert('कक्षा में अभी कोई विद्यार्थी दर्ज नहीं है।', 'info');
+    return;
+  }
+
+  const examKey = currentResultExam || 'pt1';
+  const examLabel = EXAM_LABELS[examKey] || examKey.toUpperCase();
+  const maxMarks = parseFloat(DB.classSettings && DB.classSettings.resultMaxMarks && DB.classSettings.resultMaxMarks[examKey]) || (['pt1','pt2','pt3'].includes(examKey) ? 20 : 60);
+
+  const headers = [
+    'Sr No', 'Roll No', 'Admission No', 'Student Name', 'Exam',
+    'Hindi Marks', 'Hindi Grade',
+    'English Marks', 'English Grade',
+    'Maths Marks', 'Maths Grade',
+    'EVS Marks', 'EVS Grade',
+    'Co-Curricular Marks', 'Co-Curricular Grade',
+    'Total Obtained', 'Max Total', 'Percentage (%)', 'Overall Grade', 'Status'
+  ];
+
+  let tsv = headers.join('\t') + '\n';
+  let copiedCount = 0;
+
+  DB.students.forEach((s, r) => {
+    if (!s || (!s.studentName && !s.admissionNo)) return;
+    copiedCount++;
+    const rNo = s.status === 'slc' ? (s.frozenRollNo || s.rollNo || (r + 1)) : (s.rollNo || (r + 1));
+    
+    const hM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_hin`]) || '';
+    const eM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_eng`]) || '';
+    const mM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_mat`]) || '';
+    const vM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_evs`]) || '';
+    const aM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_act`]) || '';
+
+    const hG = calculateGrade(hM, maxMarks);
+    const eG = calculateGrade(eM, maxMarks);
+    const mG = calculateGrade(mM, maxMarks);
+    const vG = calculateGrade(vM, maxMarks);
+    const aG = calculateGrade(aM, maxMarks);
+
+    let tot = 0, filled = 0;
+    [hM, eM, mM, vM, aM].forEach(m => {
+      const num = parseFloat(m);
+      if (!isNaN(num)) { tot += Math.min(maxMarks, num); filled++; }
+    });
+
+    const maxTot = maxMarks * 5;
+    const pct = filled > 0 ? ((tot / (filled * maxMarks)) * 100).toFixed(1) + '%' : '';
+    const ovGrade = filled > 0 ? calculateGrade(tot / filled, maxMarks) : '';
+    const status = filled > 0 ? (parseFloat(pct) >= 33 ? 'Passed' : 'Needs Support') : '';
+
+    const row = [
+      r + 1,
+      rNo,
+      s.admissionNo || '',
+      s.studentName || '',
+      examLabel,
+      hM, hG,
+      eM, eG,
+      mM, mG,
+      vM, vG,
+      aM, aG,
+      tot, maxTot, pct, ovGrade, status
+    ];
+
+    tsv += row.join('\t') + '\n';
+  });
+
+  copyTextToClipboard(tsv, `✅ ${examLabel} रिजल्ट शीट (${copiedCount} विद्यार्थी) क्लिपबोर्ड पर कॉपी हो गई! Excel में Ctrl+V से पेस्ट करें।`);
+}
+
+function exportExamResultToExcel() {
+  if (!DB.students || DB.students.length === 0) {
+    showAlert('कक्षा में अभी कोई विद्यार्थी दर्ज नहीं है।', 'info');
+    return;
+  }
+
+  const examKey = currentResultExam || 'pt1';
+  const examLabel = EXAM_LABELS[examKey] || examKey.toUpperCase();
+  const maxMarks = parseFloat(DB.classSettings && DB.classSettings.resultMaxMarks && DB.classSettings.resultMaxMarks[examKey]) || (['pt1','pt2','pt3'].includes(examKey) ? 20 : 60);
+
+  const headers = [
+    'Sr No', 'Roll No', 'Admission No', 'Student Name', 'Exam',
+    'Hindi Marks', 'Hindi Grade',
+    'English Marks', 'English Grade',
+    'Maths Marks', 'Maths Grade',
+    'EVS Marks', 'EVS Grade',
+    'Co-Curricular Marks', 'Co-Curricular Grade',
+    'Total Obtained', 'Max Total', 'Percentage (%)', 'Overall Grade', 'Status'
+  ];
+
+  let csv = '\ufeff' + headers.map(h => `"${h}"`).join(',') + '\n';
+  let count = 0;
+
+  DB.students.forEach((s, r) => {
+    if (!s || (!s.studentName && !s.admissionNo)) return;
+    count++;
+    const rNo = s.status === 'slc' ? (s.frozenRollNo || s.rollNo || (r + 1)) : (s.rollNo || (r + 1));
+
+    const hM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_hin`]) || '';
+    const eM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_eng`]) || '';
+    const mM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_mat`]) || '';
+    const vM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_evs`]) || '';
+    const aM = (DB.resultScores && DB.resultScores[`s_${r}_${examKey}_act`]) || '';
+
+    const hG = calculateGrade(hM, maxMarks);
+    const eG = calculateGrade(eM, maxMarks);
+    const mG = calculateGrade(mM, maxMarks);
+    const vG = calculateGrade(vM, maxMarks);
+    const aG = calculateGrade(aM, maxMarks);
+
+    let tot = 0, filled = 0;
+    [hM, eM, mM, vM, aM].forEach(m => {
+      const num = parseFloat(m);
+      if (!isNaN(num)) { tot += Math.min(maxMarks, num); filled++; }
+    });
+
+    const maxTot = maxMarks * 5;
+    const pct = filled > 0 ? ((tot / (filled * maxMarks)) * 100).toFixed(1) + '%' : '';
+    const ovGrade = filled > 0 ? calculateGrade(tot / filled, maxMarks) : '';
+    const status = filled > 0 ? (parseFloat(pct) >= 33 ? 'Passed' : 'Needs Support') : '';
+
+    const row = [
+      r + 1,
+      `"${rNo}"`,
+      `"${(s.admissionNo || '').replace(/"/g, '""')}"`,
+      `"${(s.studentName || '').replace(/"/g, '""')}"`,
+      `"${examLabel}"`,
+      `"${hM}"`, `"${hG}"`,
+      `"${eM}"`, `"${eG}"`,
+      `"${mM}"`, `"${mG}"`,
+      `"${vM}"`, `"${vG}"`,
+      `"${aM}"`, `"${aG}"`,
+      `"${tot}"`, `"${maxTot}"`, `"${pct}"`, `"${ovGrade}"`, `"${status}"`
+    ];
+
+    csv += row.join(',') + '\n';
+  });
+
+  const cls = (DB.classSettings && DB.classSettings.classSec) ? DB.classSettings.classSec.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Class';
+  downloadCsvFile(csv, `Result_${examKey}_${cls}_${Date.now()}.csv`);
+  showToast(`✅ ${examLabel} रिजल्ट शीट Excel में डाउनलोड हो गई!`, 'success');
+}
+
+function copyPeerGroupsForExcel() {
+  if (!DB.peerGroups || DB.peerGroups.length === 0) {
+    showAlert('कक्षा में अभी कोई सहपाठी समूह नहीं बना है।', 'info');
+    return;
+  }
+
+  const headers = ['Group No', 'Group Name', 'Theme', 'Icon', 'Role', 'Roll No', 'Admission No', 'Student Name'];
+  let tsv = headers.join('\t') + '\n';
+  let count = 0;
+
+  DB.peerGroups.forEach((grp, gIdx) => {
+    (grp.members || []).forEach(m => {
+      count++;
+      const st = (DB.students || []).find(s => s.id === m.studentId) || {};
+      const rNo = st.status === 'slc' ? (st.frozenRollNo || st.rollNo || '-') : (st.rollNo || '-');
+      const roleLabel = m.role === 'leader' ? 'Leader (लीडर)' : (m.role === 'backup_1' ? 'Backup 1 (सहायक 1)' : (m.role === 'backup_2' ? 'Backup 2 (सहायक 2)' : 'Member (सदस्य)'));
+      const row = [
+        gIdx + 1,
+        grp.groupName || ('Group ' + (gIdx + 1)),
+        grp.theme || '',
+        grp.icon || '👥',
+        roleLabel,
+        rNo,
+        st.admissionNo || '',
+        st.studentName || m.studentName || ''
+      ];
+      tsv += row.join('\t') + '\n';
+    });
+  });
+
+  copyTextToClipboard(tsv, `✅ सहपाठी समूह विवरण (${count} सदस्य) क्लिपबोर्ड पर कॉपी हो गया! Excel में Ctrl+V से पेस्ट करें।`);
+}
+
+function exportPeerGroupsToExcel() {
+  if (!DB.peerGroups || DB.peerGroups.length === 0) {
+    showAlert('कक्षा में अभी कोई सहपाठी समूह नहीं बना है।', 'info');
+    return;
+  }
+
+  const headers = ['Group No', 'Group Name', 'Theme', 'Icon', 'Role', 'Roll No', 'Admission No', 'Student Name'];
+  let csv = '\ufeff' + headers.map(h => `"${h}"`).join(',') + '\n';
+  let count = 0;
+
+  DB.peerGroups.forEach((grp, gIdx) => {
+    (grp.members || []).forEach(m => {
+      count++;
+      const st = (DB.students || []).find(s => s.id === m.studentId) || {};
+      const rNo = st.status === 'slc' ? (st.frozenRollNo || st.rollNo || '-') : (st.rollNo || '-');
+      const roleLabel = m.role === 'leader' ? 'Leader' : (m.role === 'backup_1' ? 'Backup 1' : (m.role === 'backup_2' ? 'Backup 2' : 'Member'));
+      const row = [
+        gIdx + 1,
+        `"${(grp.groupName || ('Group ' + (gIdx + 1))).replace(/"/g, '""')}"`,
+        `"${(grp.theme || '').replace(/"/g, '""')}"`,
+        `"${(grp.icon || '👥').replace(/"/g, '""')}"`,
+        `"${roleLabel}"`,
+        `"${rNo}"`,
+        `"${(st.admissionNo || '').replace(/"/g, '""')}"`,
+        `"${(st.studentName || m.studentName || '').replace(/"/g, '""')}"`
+      ];
+      csv += row.join(',') + '\n';
+    });
+  });
+
+  const cls = (DB.classSettings && DB.classSettings.classSec) ? DB.classSettings.classSec.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Class';
+  downloadCsvFile(csv, `Peer_Groups_${cls}_${Date.now()}.csv`);
+  showToast(`✅ सहपाठी समूह विवरण Excel में डाउनलोड हो गया!`, 'success');
+}
+
+// Universal context-adaptive callers for the Class Workspace Subnav
+function exportCurrentClassTabToExcel() {
+  const activeTab = DB.activeTab || 'master_roster';
+  if (activeTab === 'master_roster') {
+    exportStudentsRosterExcel();
+  } else if (activeTab === 'fln_sheet') {
+    exportFlnSheetToExcel();
+  } else if (activeTab === 'result_sheet') {
+    exportExamResultToExcel();
+  } else if (activeTab === 'attendance') {
+    exportAttendanceToExcel();
+  } else if (activeTab === 'peer_groups') {
+    exportPeerGroupsToExcel();
+  } else {
+    exportStudentsRosterExcel();
+  }
+}
+
+function copyCurrentClassTabForExcel() {
+  const activeTab = DB.activeTab || 'master_roster';
+  if (activeTab === 'master_roster') {
+    copyMasterRosterForExcel();
+  } else if (activeTab === 'fln_sheet') {
+    copyFlnSheetForExcel();
+  } else if (activeTab === 'result_sheet') {
+    copyExamResultForExcel();
+  } else if (activeTab === 'attendance') {
+    copyAttendanceForExcel();
+  } else if (activeTab === 'peer_groups') {
+    copyPeerGroupsForExcel();
+  } else {
+    copyMasterRosterForExcel();
+  }
+}
+
+function downloadCsvFile(csvContent, fileName) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  if (navigator.msSaveBlob) {
+    navigator.msSaveBlob(blob, fileName);
+  } else {
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+}
+
+function copyTextToClipboard(text, successMsg) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(successMsg, 'success');
+    }).catch(err => {
+      fallbackCopyText(text, successMsg);
+    });
+  } else {
+    fallbackCopyText(text, successMsg);
+  }
+}
+
+function fallbackCopyText(text, successMsg) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    showToast(successMsg, 'success');
+  } catch (err) {
+    showAlert('कॉपी करने में समस्या: ' + err);
+  }
+  document.body.removeChild(textArea);
+}
+
+
 function shareDocAction(docType, actionType) {
   const sel = document.getElementById('shareStudentSelect');
   let studentIdx = sel ? parseInt(sel.value, 10) : 0;
@@ -17970,16 +18476,49 @@ function shareDocAction(docType, actionType) {
   const school = (DB.classSettings && DB.classSettings.schoolName) || 'MCD School';
   const cls = (DB.classSettings && DB.classSettings.classSec) || 'Class';
 
-  // Map docType to UI Tab
+  closeShareModal();
+
+  // 1. CLASS REGISTERS EXCEL ACTIONS
+  if (actionType === 'excel') {
+    if (docType === 'master_roster') {
+      exportStudentsRosterExcel();
+    } else if (docType === 'fln_sheet') {
+      exportFlnSheetToExcel();
+    } else if (docType === 'result_sheet') {
+      exportExamResultToExcel();
+    } else if (docType === 'attendance') {
+      exportAttendanceToExcel();
+    } else if (docType === 'peer_groups') {
+      exportPeerGroupsToExcel();
+    }
+    return;
+  }
+
+  if (actionType === 'excel_copy') {
+    if (docType === 'master_roster') {
+      copyMasterRosterForExcel();
+    } else if (docType === 'fln_sheet') {
+      copyFlnSheetForExcel();
+    } else if (docType === 'result_sheet') {
+      copyExamResultForExcel();
+    } else if (docType === 'attendance') {
+      copyAttendanceForExcel();
+    } else if (docType === 'peer_groups') {
+      copyPeerGroupsForExcel();
+    }
+    return;
+  }
+
+  // 2. TAB NAVIGATION FOR PRINT / PREVIEW
   if (docType === 'cover' || docType === 'f1' || docType === 'cs' || docType === 'ss') {
     jumpToStudentForm(studentIdx, docType);
   } else if (docType === 'f2') {
     switchTab('f2');
   } else if (docType === 'cb') {
     switchTab('cb');
+  } else if (['master_roster', 'fln_sheet', 'result_sheet', 'attendance', 'peer_groups'].includes(docType)) {
+    switchTab(docType);
   }
-
-  closeShareModal();
 
   if (actionType === 'jpeg') {
     setTimeout(() => {
@@ -17987,32 +18526,48 @@ function shareDocAction(docType, actionType) {
     }, 250);
   } else if (actionType === 'pdf') {
     setTimeout(() => {
-      printActivePage();
+      if (docType === 'peer_groups') {
+        if (typeof printPeerGroupsOnly === 'function') printPeerGroupsOnly();
+        else window.print();
+      } else if (['cover', 'f1', 'cs', 'ss', 'f2', 'cb'].includes(docType)) {
+        printActivePage();
+      } else {
+        window.print();
+      }
     }, 250);
   } else if (actionType === 'whatsapp') {
-    // Download official image first
-    setTimeout(() => {
-      saveActivePageAsImage();
-    }, 200);
+    const isStudentDoc = ['cover', 'f1', 'cs', 'ss'].includes(docType);
+    if (isStudentDoc || ['f2', 'cb'].includes(docType)) {
+      setTimeout(() => {
+        saveActivePageAsImage();
+      }, 200);
+    }
 
-    // Open WhatsApp with official description
     const docNames = {
       cover: 'पोर्टफोलियो कवर पेज (Portfolio Cover)',
       f1: 'Annexure F1 (FLN प्रोग्रेस शीट)',
       cs: 'Annexure CS (केस स्टडी रिपोर्ट)',
       ss: 'Annexure SS (सक्सेस स्टोरी)',
       f2: 'Annexure F2 (कक्षा FLN समरी रिपोर्ट)',
-      cb: 'Class Board (FLN स्टेटस बोर्ड)'
+      cb: 'Class Board (FLN स्टेटस बोर्ड)',
+      master_roster: 'मास्टर छात्र रजिस्टर (Class Master Roster)',
+      fln_sheet: 'FLN असेसमेंट शीट 20 तारीखें (FLN 20-Dates Sheet)',
+      result_sheet: 'परीक्षा एवं परिणाम रजिस्टर (Class Exam Result)',
+      attendance: 'छात्र दैनिक उपस्थिति पंजिका (Attendance Register)',
+      peer_groups: 'सहपाठी समूह चार्ट (Peer Learning Groups)'
     };
 
     let msg = `📚 *दिल्ली नगर निगम - प्राथमिक विद्यालय*\n`;
     msg += `🏫 *स्कूल:* ${school} | *कक्षा:* ${cls}\n`;
-    if (['cover', 'f1', 'cs', 'ss'].includes(docType)) {
+    if (isStudentDoc) {
       msg += `👨‍🎓 *विद्यार्थी:* ${sName} (Roll: ${rNo}, Admn: ${adm})\n`;
+    } else {
+      const activeCount = (DB.students || []).filter(s => s && s.studentName && s.studentName.trim().length > 0 && s.status !== 'slc').length;
+      msg += `👥 *सक्रिय विद्यार्थी संख्या:* ${activeCount}\n`;
     }
-    msg += `📄 *दस्तावेज:* ${docNames[docType] || 'पोर्टफोलियो दस्तावेज'}\n`;
+    msg += `📄 *दस्तावेज:* ${docNames[docType] || 'पोर्टफोलियो व कक्षा दस्तावेज'}\n`;
     msg += `✨ _MCD Digital Student Portfolio Assessment Portal_\n\n`;
-    msg += `📎 *कृपया डाउनलोड की गई फोटो/PDF साथ में अटैच करके भेजें।*`;
+    msg += `📎 *कृपया डाउनलोड की गई फाइल (Excel/PDF/Image) साथ में प्रेषित करें।*`;
 
     const url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(msg);
     setTimeout(() => {
